@@ -94,7 +94,7 @@ internal sealed class ProcessLoopbackCapture : IWaveIn
         catch (Exception ex) { error = ex; _started.TrySetException(ex); }
         finally
         {
-            if (client != null) { try { client.Stop(); } catch { } }
+            if (client != null) { try { client.Stop(); } catch (Exception ex) { AppLog.Error("Loopback client stop failed.", ex); } }
             if (capture != null) Marshal.ReleaseComObject(capture);
             if (client != null) Marshal.ReleaseComObject(client);
             activation?.ReleaseParameters();

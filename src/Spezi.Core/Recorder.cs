@@ -217,7 +217,7 @@ public sealed class Recorder : IDisposable
                 SegmentedSession.Remux(parts, pendingPath);
                 File.Move(pendingPath, destination);
                 path = destination;
-                try { System.IO.Directory.Delete(session.DirectoryPath, true); } catch { /* keep parts if delete fails */ }
+                try { System.IO.Directory.Delete(session.DirectoryPath, true); } catch (Exception ex) { AppLog.Error("Session folder could not be removed; parts are kept.", ex); }
             }
             catch (Exception ex)
             {
@@ -405,9 +405,9 @@ public sealed class Recorder : IDisposable
         try { _audio.Stop(); } catch (Exception ex) { AppLog.Error("Audio stop failed.", ex); }
         try { video?.DrainAndStop(); } catch (Exception ex) { AppLog.Error("Encoder drain failed.", ex); }
         try { audioEncoder?.DrainAndStop(); } catch (Exception ex) { AppLog.Error("Audio encoder drain failed.", ex); }
-        try { audioEncoder?.Dispose(); } catch { /* ignore */ }
-        try { converter?.Dispose(); } catch { /* ignore */ }
-        try { graphics?.Dispose(); } catch { /* ignore */ }
+        try { audioEncoder?.Dispose(); } catch (Exception ex) { AppLog.Error("Audio encoder dispose failed.", ex); }
+        try { converter?.Dispose(); } catch (Exception ex) { AppLog.Error("Color converter dispose failed.", ex); }
+        try { graphics?.Dispose(); } catch (Exception ex) { AppLog.Error("Graphics dispose failed.", ex); }
         video?.Dispose();
     }
 
@@ -864,7 +864,7 @@ sealed class FramePump : IDisposable
         _thread?.Join(TimeSpan.FromSeconds(2));
         if (_session != null)
         {
-            try { _session.Dispose(); } catch { /* ignore */ }
+            try { _session.Dispose(); } catch (Exception ex) { AppLog.Error("Session dispose failed.", ex); }
             _session = null;
         }
         if (_pool != null)
