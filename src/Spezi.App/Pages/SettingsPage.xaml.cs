@@ -18,6 +18,7 @@ public partial class SettingsPage : System.Windows.Controls.UserControl
     {
         InitializeComponent();
         _controller = controller;
+        VersionText.Text = "Spezi v" + AppVersionText();
         Unloaded += (_, _) => HotkeyEditingChanged?.Invoke(false);
         FpsBox.ItemsSource = new[] { "30", "60", "120" };
         _levels = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(100) };
@@ -61,6 +62,7 @@ public partial class SettingsPage : System.Windows.Controls.UserControl
         LoadSources();
         SoftwareBox.IsChecked = settings.AllowSoftwareEncoder;
         SystemAudioBox.IsChecked = settings.CaptureSystemAudio != false;
+        MicBox.IsChecked = settings.RecordMicrophone;
         ReplayDuration.Seconds = settings.ReplaySeconds;
         ReplayMemoryText.Text = AppSettings.ReplayMemoryText(settings.ReplaySeconds, settings.VideoBitrateKbps);
         AudioModeBox.SelectedIndex = settings.AudioMode == AudioCaptureMode.Applications ? 1 : 0;
@@ -71,7 +73,7 @@ public partial class SettingsPage : System.Windows.Controls.UserControl
         CursorBox.IsChecked = settings.CaptureCursor;
         ReplayHotkey.Text = HotkeyText.Format(settings.ReplayHotkey);
         RecordHotkey.Text = HotkeyText.Format(settings.RecordHotkey);
-        HotkeyError.Text = string.Join(" ", new[] { _controller.ReplayHotkeyError, _controller.RecordHotkeyError }.Where(s => s.Length > 0));
+        HotkeyError.Text = _controller.HotkeyErrorText;
         StartupBox.IsChecked = settings.StartWithWindows;
         AutoBox.IsChecked = settings.AutoReplayWhenPlaying;
         ToastBox.IsChecked = settings.StatusToasts;
@@ -101,58 +103,56 @@ public partial class SettingsPage : System.Windows.Controls.UserControl
     void BuildAudio()
     {
         AudioList.Children.Clear();
-        var selected = _controller.Settings.OutputDeviceIds.ToHashSet(StringComparer.OrdinalIgnoreCase);
-        foreach (var device in _controller.AudioDevices().Where(d => d.IsMicrophone || _controller.Settings.AudioMode == AudioCaptureMode.System))
+        MicList.Children.Clear();
+        var settings = _controller.Settings;
+        var selected = settings.OutputDeviceIds.ToHashSet(StringComparer.OrdinalIgnoreCase);
+        foreach (var device in _controller.AudioDevices().Where(d => d.IsMicrophone || settings.AudioMode == AudioCaptureMode.System))
         {
-            var row = new Grid { Margin = new Thickness(0, 4, 0, 10) };
-            row.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
-            row.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
-            row.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
-            row.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(72) });
-            var toggle = new System.Windows.Controls.CheckBox
-            {
-                Content = new TextBlock { Text = device.Name, TextWrapping = TextWrapping.Wrap, FontSize = 11.5, Margin = new Thickness(0, 0, 6, 0) },
-                Tag = device,
-                IsChecked = device.IsMicrophone
-                    ? _controller.Settings.RecordMicrophone && (_controller.Settings.MicrophoneId == device.Id || _controller.Settings.MicrophoneId == null && device.IsDefault)
-                    : selected.Count == 0 ? device.IsDefault : selected.Contains(device.Id),
-                IsEnabled = device.IsMicrophone || _controller.Settings.CaptureSystemAudio != false
-            };
-            toggle.Checked += AudioToggled;
-            toggle.Unchecked += AudioToggled;
-            var slider = new Slider
-            {
-                Minimum = 0,
-                Maximum = 200,
-                Value = _controller.Settings.GainFor(device.Id) * 100,
-                Tag = device.Id,
-                VerticalAlignment = VerticalAlignment.Center,
-                Margin = new Thickness(12, 0, 12, 0)
-            };
-            slider.ValueChanged += GainChanged;
-            var meter = new System.Windows.Controls.ProgressBar { Height = 8, Maximum = 1, Tag = device.Id, VerticalAlignment = VerticalAlignment.Center };
-            meter.SetResourceReference(System.Windows.Controls.ProgressBar.ForegroundProperty, "Accent");
-            Grid.SetRow(slider, 1);
-            Grid.SetColumn(meter, 1);
-            Grid.SetRow(meter, 1);
-            var deviceLabel = new TextBlock { Text = device.IsMicrophone ? "MICROPHONE" : "SYSTEM AUDIO", FontSize = 9, Foreground = (System.Windows.Media.Brush)FindResource("Muted"), Margin = new Thickness(0, 0, 0, 4) };
-            var heading = new StackPanel();
-            heading.Children.Add(deviceLabel);
-            heading.Children.Add(toggle);
-            Grid.SetColumnSpan(heading, 2);
-            row.Children.Add(heading);
-            row.Children.Add(slider);
-            row.Children.Add(meter);
-            var wrapper = new Border { Background = (System.Windows.Media.Brush)FindResource("Field"), CornerRadius = new CornerRadius(9), Padding = new Thickness(10), Margin = new Thickness(0, 0, 0, 8), Child = row };
-            row.Margin = new Thickness(0);
-            AudioList.Children.Add(wrapper);
+            var isChecked = device.IsMicrophone
+                ? settings.RecordMicrophone && (settings.MicrophoneId == device.Id || settings.MicrophoneId == null && device.IsDefault)
+                : selected.Count == 0 ? device.IsDefault : selected.Contains(device.Id);
+            var enabled = device.IsMicrophone || settings.CaptureSystemAudio != false;
+            (device.IsMicrophone ? MicList : AudioList).Children.Add(DeviceRow(device.Name + (device.IsDefault ? "  (default)" : ""), device, device.Id, isChecked, enabled, AudioToggled));
         }
+    }
+
+    // One compact row per source: checkbox + name, volume slider, level meter.
+    Border DeviceRow(string name, object tag, string id, bool isChecked, bool enabled, RoutedEventHandler toggled, string? detail = null)
+    {
+        var row = new Grid();
+        row.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+        row.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(130) });
+        row.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(56) });
+        var label = new StackPanel();
+        label.Children.Add(new TextBlock { Text = name, FontSize = 11.5, TextWrapping = TextWrapping.NoWrap, TextTrimming = TextTrimming.CharacterEllipsis, ToolTip = name });
+        if (detail != null)
+        {
+            var status = new TextBlock { Text = detail, FontSize = 10, TextWrapping = TextWrapping.NoWrap, Margin = new Thickness(0, 2, 0, 0), TextTrimming = TextTrimming.CharacterEllipsis };
+            status.SetResourceReference(TextBlock.ForegroundProperty, "Muted");
+            label.Children.Add(status);
+        }
+        var toggle = new System.Windows.Controls.CheckBox { Content = label, Tag = tag, IsChecked = isChecked, IsEnabled = enabled, VerticalAlignment = VerticalAlignment.Center, VerticalContentAlignment = VerticalAlignment.Center, HorizontalContentAlignment = System.Windows.HorizontalAlignment.Stretch };
+        toggle.Checked += toggled;
+        toggle.Unchecked += toggled;
+        var slider = new Slider { Minimum = 0, Maximum = 200, Value = _controller.Settings.GainFor(id) * 100, Tag = id, IsEnabled = enabled,
+            VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(10, 0, 10, 0), ToolTip = "Recording volume" };
+        slider.ValueChanged += GainChanged;
+        Grid.SetColumn(slider, 1);
+        var meter = new System.Windows.Controls.ProgressBar { Height = 6, Maximum = 1, Tag = id, VerticalAlignment = VerticalAlignment.Center };
+        meter.SetResourceReference(System.Windows.Controls.ProgressBar.ForegroundProperty, "Accent");
+        Grid.SetColumn(meter, 2);
+        row.Children.Add(toggle);
+        row.Children.Add(slider);
+        row.Children.Add(meter);
+        var wrapper = new Border { CornerRadius = new CornerRadius(8), Padding = new Thickness(10, 7, 10, 7), Margin = new Thickness(0, 0, 0, 5), Child = row };
+        wrapper.SetResourceReference(Border.BackgroundProperty, "Field");
+        return wrapper;
     }
 
     void PaintLevels()
     {
         var levels = _controller.Snapshot().Levels;
-        foreach (var row in AudioList.Children.OfType<Border>().Concat(ApplicationAudioList.Children.OfType<Border>()).Select(b => b.Child).OfType<Grid>())
+        foreach (var row in AudioList.Children.OfType<Border>().Concat(MicList.Children.OfType<Border>()).Concat(ApplicationAudioList.Children.OfType<Border>()).Select(b => b.Child).OfType<Grid>())
         {
             var meter = row.Children.OfType<System.Windows.Controls.ProgressBar>().FirstOrDefault();
             if (meter?.Tag is not string id)
@@ -328,6 +328,24 @@ public partial class SettingsPage : System.Windows.Controls.UserControl
         Reload();
     }
 
+    void MicChanged(object sender, RoutedEventArgs e)
+    {
+        if (_loading) return;
+        var testing = _controller.Snapshot().AudioTestActive;
+        if (testing) _controller.StopAudioTest();
+        _controller.Settings.RecordMicrophone = MicBox.IsChecked == true;
+        _controller.Save();
+        Reload();
+        if (testing) _controller.StartAudioTest();
+    }
+
+    void OpenLink(object sender, System.Windows.Navigation.RequestNavigateEventArgs e)
+    {
+        try { System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo(e.Uri.AbsoluteUri) { UseShellExecute = true }); }
+        catch (Exception ex) { AppLog.Error("Could not open link", ex); }
+        e.Handled = true;
+    }
+
     void SystemAudioChanged(object sender, RoutedEventArgs e)
     {
         if (_loading) return;
@@ -371,36 +389,10 @@ public partial class SettingsPage : System.Windows.Controls.UserControl
         var enabled = _controller.Settings.CaptureSystemAudio != false && _controller.ApplicationAudioSupported;
         foreach (var app in _controller.AudioApplications())
         {
-            var row = new Grid();
-            row.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
-            row.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
-            row.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
-            row.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(72) });
-            var heading = new StackPanel();
-            heading.Children.Add(new TextBlock { Text = app.Name, FontSize = 11.5, TextWrapping = TextWrapping.Wrap });
-            var status = new TextBlock { FontSize = 10, Margin = new Thickness(0, 3, 0, 0), TextWrapping = TextWrapping.Wrap,
-                Text = app.Id == AudioApplicationEntry.GameId ? "Follows your game, even when you switch back to Spezi."
-                    : app.IsRunning ? "App is running" : "Capture starts when the app is running." };
-            status.SetResourceReference(TextBlock.ForegroundProperty, "Muted");
-            heading.Children.Add(status);
-            var toggle = new System.Windows.Controls.CheckBox { Content = heading, Tag = app,
-                IsChecked = _controller.Settings.AudioApplicationIds.Contains(app.Id, StringComparer.OrdinalIgnoreCase), IsEnabled = enabled };
-            toggle.Checked += ApplicationAudioToggled;
-            toggle.Unchecked += ApplicationAudioToggled;
-            Grid.SetColumnSpan(toggle, 2);
-            row.Children.Add(toggle);
-            var slider = new Slider { Minimum = 0, Maximum = 200, Value = _controller.Settings.GainFor(app.Id) * 100, Tag = app.Id,
-                IsEnabled = enabled, Margin = new Thickness(10, 7, 12, 0), ToolTip = "Recording volume" };
-            slider.ValueChanged += GainChanged;
-            Grid.SetRow(slider, 1);
-            row.Children.Add(slider);
-            var meter = new System.Windows.Controls.ProgressBar { Height = 8, Maximum = 1, Tag = app.Id, Margin = new Thickness(0, 7, 0, 0), VerticalAlignment = VerticalAlignment.Center };
-            meter.SetResourceReference(System.Windows.Controls.ProgressBar.ForegroundProperty, "Accent");
-            Grid.SetRow(meter, 1); Grid.SetColumn(meter, 1);
-            row.Children.Add(meter);
-            var wrapper = new Border { CornerRadius = new CornerRadius(9), Padding = new Thickness(10), Margin = new Thickness(0, 0, 0, 8), Child = row };
-            wrapper.SetResourceReference(Border.BackgroundProperty, "Field");
-            ApplicationAudioList.Children.Add(wrapper);
+            var detail = app.Id == AudioApplicationEntry.GameId ? "Follows your game, even when you switch back to Spezi."
+                : app.IsRunning ? "App is running" : "Capture starts when the app is running.";
+            ApplicationAudioList.Children.Add(DeviceRow(app.Name, app, app.Id,
+                _controller.Settings.AudioApplicationIds.Contains(app.Id, StringComparer.OrdinalIgnoreCase), enabled, ApplicationAudioToggled, detail));
         }
         UpdateApplicationHint();
     }
@@ -500,6 +492,13 @@ public partial class SettingsPage : System.Windows.Controls.UserControl
             choice.Tag = active ? "on" : null;
             if (active) AccentName.Text = choice.ToolTip?.ToString() ?? "Custom color";
         }
+    }
+
+    static string AppVersionText()
+    {
+        var info = System.Reflection.Assembly.GetEntryAssembly()?.GetCustomAttributes(typeof(System.Reflection.AssemblyInformationalVersionAttribute), false)
+            .OfType<System.Reflection.AssemblyInformationalVersionAttribute>().FirstOrDefault()?.InformationalVersion;
+        return string.IsNullOrWhiteSpace(info) ? typeof(SettingsPage).Assembly.GetName().Version?.ToString(3) ?? "?" : info.Split('+')[0];
     }
 
     static string ProfileName(QualityProfile profile) => profile switch
