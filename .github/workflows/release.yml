@@ -1,36 +1,63 @@
-﻿name: Release
+name: Release
 on:
   push:
     tags: ['v*']
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Existing tag to release (e.g. v1.1.1)'
+        required: true
 permissions:
   contents: write
 jobs:
   release:
     runs-on: windows-latest
     env:
+      RELEASE_TAG: ${{ github.event.inputs.tag || github.ref_name }}
       SIGNING_CERT_BASE64: ${{ secrets.SIGNING_CERT_BASE64 }}
       SIGNING_CERT_PASSWORD: ${{ secrets.SIGNING_CERT_PASSWORD }}
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.inputs.tag || github.ref }}
       - uses: actions/setup-dotnet@v4
         with:
           dotnet-version: 9.0.x
       - name: Build and unit tests
+        shell: pwsh
         run: |
+          Write-Host '== dotnet build'
           dotnet build Spezi.sln -c Release
+          if ($LASTEXITCODE -ne 0) { throw "dotnet build failed ($LASTEXITCODE)" }
+          Write-Host '== unit tests'
           dotnet test tests/Spezi.Tests -c Release --no-build
+          if ($LASTEXITCODE -ne 0) { throw "unit tests failed ($LASTEXITCODE)" }
       - name: Check tag matches Directory.Build.props
         shell: pwsh
         run: |
-          $version = ([xml](Get-Content Directory.Build.props)).Project.PropertyGroup.Version
-          if ("v$version" -ne "${{ github.ref_name }}") { throw "Tag ${{ github.ref_name }} does not match version $version" }
+          $version = (([xml](Get-Content Directory.Build.props)).Project.PropertyGroup | ForEach-Object { $_.Version } | Where-Object { $_ } | Select-Object -First 1)
+          Write-Host "== version $version, tag $env:RELEASE_TAG"
+          if ("v$version" -ne $env:RELEASE_TAG) { throw "Tag $env:RELEASE_TAG does not match version $version" }
       - name: Install Inno Setup
         shell: pwsh
         run: |
-          Invoke-WebRequest https://jrsoftware.org/download.php/is.exe -OutFile $env:RUNNER_TEMP\is.exe
-          Start-Process $env:RUNNER_TEMP\is.exe -ArgumentList '/VERYSILENT','/SUPPRESSMSGBOXES','/NORESTART','/SP-' -Wait
-          $iscc = Get-ChildItem "${env:ProgramFiles(x86)}\Inno Setup*\ISCC.exe","$env:ProgramFiles\Inno Setup*\ISCC.exe" -ErrorAction SilentlyContinue | Select-Object -First 1
-          if (!$iscc) { throw 'ISCC.exe not found' }
+          # Spezi.iss uses Inno Setup 7 features (SetupArchitecture, WizardStyle "modern dark"),
+          # so Chocolatey (6.x) is not an option. jrsoftware.org/download.php now returns HTML;
+          # since March 2026 the installers live on GitHub releases. Pinned + SHA-256 checked.
+          $url = 'https://github.com/jrsoftware/issrc/releases/download/is-7_1_1/innosetup-7.1.1-x64.exe'
+          $sha = '8A5A6711C3766A6E5FB74F280BA0E3551E719CE94538D901FDBD1F8F9920B3F0'
+          $setup = Join-Path $env:RUNNER_TEMP 'innosetup-7.1.1-x64.exe'
+          Write-Host "== downloading $url"
+          Invoke-WebRequest -UseBasicParsing $url -OutFile $setup
+          $actual = (Get-FileHash $setup -Algorithm SHA256).Hash
+          if ($actual -ne $sha) { throw "Inno Setup download hash mismatch: $actual" }
+          Write-Host '== installing Inno Setup 7.1.1'
+          $p = Start-Process $setup -ArgumentList '/VERYSILENT','/SUPPRESSMSGBOXES','/NORESTART','/SP-','/ALLUSERS' -Wait -PassThru
+          Write-Host "== Inno Setup installer exit code $($p.ExitCode)"
+          if ($p.ExitCode -ne 0) { throw "Inno Setup install failed ($($p.ExitCode))" }
+          $iscc = Get-ChildItem "${env:ProgramFiles}\Inno Setup 7\ISCC.exe","${env:ProgramFiles(x86)}\Inno Setup 7\ISCC.exe","$env:LOCALAPPDATA\Programs\Inno Setup 7\ISCC.exe" -ErrorAction SilentlyContinue | Select-Object -First 1
+          if (!$iscc) { throw 'ISCC.exe not found after installing Inno Setup' }
+          Write-Host "== using $($iscc.FullName)"
           "ISCC=$($iscc.FullName)" >> $env:GITHUB_ENV
       - name: Optional code signing (only if SIGNING_CERT_BASE64 secret exists)
         if: env.SIGNING_CERT_BASE64 != ''
@@ -43,14 +70,22 @@ jobs:
       - name: Build installer and updater
         shell: pwsh
         run: |
+          $ErrorActionPreference = 'Stop'
+          Write-Host '== publish + installer'
           ./installer/Build-Installer.ps1 -CompilerPath $env:ISCC
+          Write-Host '== updater'
           ./updater/Build-Updater.ps1 -CompilerPath $env:ISCC
+          Write-Host '== verify checksums'
           ./tools/Verify-Checksums.ps1
+          if ($LASTEXITCODE -ne 0) { throw 'checksum verification failed' }
+          Get-ChildItem installer/Spezi-Setup.exe*, updater/Spezi-Updater.exe* | Format-Table Name, Length
       - name: Publish GitHub release
         shell: pwsh
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          gh release create "${{ github.ref_name }}" --title "Spezi ${{ github.ref_name }}" --notes "See CHANGELOG.md" `
+          Write-Host "== gh release create $env:RELEASE_TAG"
+          gh release create "$env:RELEASE_TAG" --title "Spezi $env:RELEASE_TAG" --notes "See CHANGELOG.md" `
             installer/Spezi-Setup.exe installer/Spezi-Setup.exe.sha256 `
             updater/Spezi-Updater.exe updater/Spezi-Updater.exe.sha256
+          if ($LASTEXITCODE -ne 0) { throw "gh release create failed ($LASTEXITCODE)" }
