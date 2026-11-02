@@ -2,6 +2,15 @@
 
 All notable changes to Spezi. The version is defined once in `Directory.Build.props`.
 
+## 1.2.0
+
+- Recording page redesign: replay status card with a pulse while active and chips for buffer length and quality; a stronger Save clip button with a clear hotkey badge and an in-button hint when replay is off; a red Start recording button with a live timer; a yellow warning row with a Change hotkeys link when both hotkeys are the same; compact audio chips with a microphone level meter; recent clips as larger tiles with duration badges and an empty state.
+- Fixed an error dialog when closing the main window. The notification window is recreated when needed, and notification failures are only logged.
+- Updater: when Spezi was not installed with Setup, the updater checks the default install folder and the portable `dist` folder, then lets you pick the folder that contains Spezi.exe instead of aborting.
+- Startup update check: once per start and in the background, Spezi checks GitHub Releases. If a newer version exists, a small banner offers Update or Later. Updates are downloaded over HTTPS and run only after the SHA-256 checksum matches. You can turn this off in Settings with Check for updates on startup.
+- Lower idle use: hardware encoder detection runs in a short-lived helper process, so GPU driver threads no longer stay in Spezi (settings open: about 45 to 18 threads and about 20 MB less memory). Status timers and level meters pause while the window is minimized.
+- Internal: the Notifications settings section uses MVVM (CommunityToolkit.Mvvm) with unit tests; tests no longer write to the user's log.
+
 ## 1.1.2
 
 - Settings: the Audio & microphone section is reorganized into two groups, App & system audio and Microphone, each with its own switch. Every source is one compact row with checkbox, name, volume slider and level meter; the long explanation moved into an info tooltip.
