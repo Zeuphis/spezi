@@ -126,6 +126,7 @@ public partial class App : System.Windows.Application
             _window.Hide();
 
         _controller.Recover();
+        _window.CheckForUpdatesOnStartup();
     }
 
     void WaitForShow()
