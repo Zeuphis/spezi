@@ -470,9 +470,9 @@ public partial class SettingsPage : System.Windows.Controls.UserControl
     void ChooseCustomAccent(object sender, RoutedEventArgs e)
     {
         var color = AppTheme.Parse(_controller.Settings.AccentColor);
-        using var picker = new System.Windows.Forms.ColorDialog { FullOpen = true, Color = System.Drawing.Color.FromArgb(color.R, color.G, color.B) };
-        if (picker.ShowDialog() == System.Windows.Forms.DialogResult.OK)
-            SetAccent($"#{picker.Color.R:X2}{picker.Color.G:X2}{picker.Color.B:X2}");
+        var picker = new ColorPickerWindow(color) { Owner = Window.GetWindow(this) };
+        if (picker.ShowDialog() == true)
+            SetAccent(picker.SelectedHex);
     }
 
     void SetAccent(string color)

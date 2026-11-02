@@ -15,9 +15,10 @@ static partial class SelfTest
         var report = new List<string>();
         MainWindow? window = null;
         var originalSettings = File.Exists(SettingsStore.FilePath) ? File.ReadAllText(SettingsStore.FilePath) : null;
-        void Capture(string name)
+        void Capture(string name) => CaptureWindow(window!, name);
+        void CaptureWindow(Window window, string name)
         {
-            window!.UpdateLayout();
+            window.UpdateLayout();
             PumpUntil(() => false, TimeSpan.FromMilliseconds(400));
             var bitmap = new RenderTargetBitmap((int)Math.Ceiling(window.ActualWidth), (int)Math.Ceiling(window.ActualHeight), 96, 96, PixelFormats.Pbgra32);
             var drawing = new DrawingVisual();
@@ -53,6 +54,13 @@ static partial class SelfTest
             Click("GalleryNav");
             window.WindowState = WindowState.Maximized;
             Capture("gallery-maximized.png");
+            var picker = new ColorPickerWindow(System.Windows.Media.Color.FromRgb(0xAC, 0x8B, 0xFA)) { Owner = window };
+            picker.Show();
+            CaptureWindow(picker, "color-picker.png");
+            ((System.Windows.Controls.TextBox)typeof(ColorPickerWindow).GetField("_hex", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)!.GetValue(picker)!).Text = "#3FC1E0";
+            CaptureWindow(picker, "color-picker-hex.png");
+            report.Add(picker.SelectedHex == "#3FC1E0" ? "PASS hex input drives the picker" : "FAIL hex sync " + picker.SelectedHex);
+            picker.Close();
             report.Add((File.Exists(SettingsStore.FilePath) ? File.ReadAllText(SettingsStore.FilePath) : null) == originalSettings ? "PASS user settings unchanged" : "WARN user settings changed");
             report.Add("UI_SCREENSHOTS_OK"); return 0;
         }
