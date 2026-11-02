@@ -48,7 +48,13 @@ public partial class GalleryPage : System.Windows.Controls.UserControl
         var query = SearchBox.Text.Trim();
         var newestFirst = _newestFirst;
         LibraryText.Text = "Loading clips…";
-        Task.Run(() =>
+        _ = PopulateAsync();
+        async Task PopulateAsync()
+        {
+        List<ClipRow> result;
+        try
+        {
+        result = await Task.Run(() =>
         {
             if (!Directory.Exists(directory))
                 return new List<ClipRow>();
@@ -59,16 +65,16 @@ public partial class GalleryPage : System.Windows.Controls.UserControl
             if (newestFirst)
                 files = files.OrderByDescending(file => file.LastWriteTimeUtc);
             return files.Take(400).Select(file => new ClipRow(file, directory)).ToList();
-        }, cancellation).ContinueWith(task =>
-        {
-            if (generation != _generation || !task.IsCompletedSuccessfully)
-                return;
-            Dispatcher.BeginInvoke(() =>
+        }, cancellation);
+        }
+        catch (OperationCanceledException) { return; }
+        catch (Exception ex) { AppLog.Error("Gallery scan failed.", ex); return; }
+        // Resumes on the UI thread.
             {
                 if (generation != _generation) return;
                 foreach (var row in _rows) HideRow(row);
                 _rows.Clear();
-                foreach (var row in task.Result)
+                foreach (var row in result)
                     _rows.Add(row);
                 EmptyState.Visibility = _rows.Count == 0 ? Visibility.Visible : Visibility.Collapsed;
                 Clips.Visibility = _rows.Count == 0 ? Visibility.Collapsed : Visibility.Visible;
@@ -80,8 +86,8 @@ public partial class GalleryPage : System.Windows.Controls.UserControl
                 LibraryText.Text = _rows.Count == 400 ? "Showing 400 clips" : query.Length > 0
                     ? $"{_rows.Count} {(_rows.Count == 1 ? "match" : "matches")}" : _rows.Count == 0
                     ? "Your saved moments." : $"{_rows.Count} {(_rows.Count == 1 ? "clip" : "clips")} · {games} {(games == 1 ? "game" : "games")}";
-            });
-        });
+            }
+        }
     }
 
     async Task LoadDetailsAsync(ClipRow row, int generation)

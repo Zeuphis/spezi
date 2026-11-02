@@ -141,7 +141,13 @@ public partial class CapturePage : System.Windows.Controls.UserControl
         _details = new CancellationTokenSource();
         var cancellation = _details.Token;
         var directory = _controller.Settings.OutputDirectory;
-        Task.Run(() =>
+        _ = PopulateAsync();
+        async Task PopulateAsync()
+        {
+        List<RecentClip> result;
+        try
+        {
+        result = await Task.Run(() =>
         {
             if (!Directory.Exists(directory))
                 return new List<RecentClip>();
@@ -151,21 +157,21 @@ public partial class CapturePage : System.Windows.Controls.UserControl
                 .Take(3)
                 .Select(file => new RecentClip(file))
                 .ToList();
-        }, cancellation).ContinueWith(task =>
-        {
-            if (generation != _generation || !task.IsCompletedSuccessfully)
-                return;
-            Dispatcher.BeginInvoke(() =>
+        }, cancellation);
+        }
+        catch (OperationCanceledException) { return; }
+        catch (Exception ex) { AppLog.Error("Recent clip scan failed.", ex); return; }
+        // Resumes on the UI thread.
             {
                 if (generation != _generation || cancellation.IsCancellationRequested) return;
                 _recent.Clear();
-                foreach (var clip in task.Result)
+                foreach (var clip in result)
                     _recent.Add(clip);
                 EmptyClips.Visibility = _recent.Count == 0 ? Visibility.Visible : Visibility.Collapsed;
                 if (IsVisible)
                     _ = LoadClipsAsync(generation);
-            });
-        });
+            }
+        }
     }
 
     async Task LoadClipsAsync(int generation)
