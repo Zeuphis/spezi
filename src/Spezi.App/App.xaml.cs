@@ -34,6 +34,8 @@ public partial class App : System.Windows.Application
             args.Handled = true;
         };
 
+#if SPEZI_SELFTESTS
+        // Self-test entry points; compiled only with -p:SpeziSelfTests=true (default in Debug).
         if (e.Args.Any(a => a.Equals("--background-replay-test", StringComparison.OrdinalIgnoreCase)))
         {
             Shutdown(SelfTest.RunBackgroundReplay());
@@ -91,6 +93,7 @@ public partial class App : System.Windows.Application
             return;
         }
 
+#endif
         _mutex = new Mutex(true, @"Local\Spezi.SingleInstance", out var created);
         if (!created)
         {

@@ -14,6 +14,15 @@
     <ApplicationIcon>Assets\Spezi.ico</ApplicationIcon>
     <ApplicationHighDpiMode>PerMonitorV2</ApplicationHighDpiMode>
   </PropertyGroup>
+  <!-- Self-tests ship only in Debug unless explicitly requested:
+       dotnet build -c Release -p:SpeziSelfTests=true -->
+  <PropertyGroup>
+    <SpeziSelfTests Condition="'$(SpeziSelfTests)' == '' and '$(Configuration)' == 'Debug'">true</SpeziSelfTests>
+    <DefineConstants Condition="'$(SpeziSelfTests)' == 'true'">$(DefineConstants);SPEZI_SELFTESTS</DefineConstants>
+  </PropertyGroup>
+  <ItemGroup Condition="'$(SpeziSelfTests)' != 'true'">
+    <Compile Remove="SelfTests/**" />
+  </ItemGroup>
   <ItemGroup>
     <Resource Include="Assets\Spezi.ico" />
     <Resource Include="Assets\SpeziMark.png" />
