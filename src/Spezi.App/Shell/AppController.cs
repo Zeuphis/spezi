@@ -247,10 +247,6 @@ public sealed class AppController : IDisposable
         }
     }
 
-    public void StartAudioTest() => Run(() => _recorder.StartAudioTest(Settings));
-
-    public void StopAudioTest() => Run(_recorder.StopAudioTest);
-
     public long FreeBytes()
     {
         try

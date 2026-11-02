@@ -37,8 +37,6 @@ public partial class SettingsPage : System.Windows.Controls.UserControl
             else
             {
                 _levels.Stop();
-                if (_controller.Snapshot().AudioTestActive)
-                    _controller.StopAudioTest();
             }
         };
     }
@@ -245,7 +243,6 @@ public partial class SettingsPage : System.Windows.Controls.UserControl
                 continue;
             meter.Value = Math.Min(1, levels.Where(item => item.DeviceId == id).Sum(item => item.Peak));
         }
-        TestButton.Content = _controller.Snapshot().AudioTestActive ? "Stop test" : "Test audio";
     }
 
     void BrowseFolder(object sender, RoutedEventArgs e)
@@ -417,12 +414,9 @@ public partial class SettingsPage : System.Windows.Controls.UserControl
     void MicChanged(object sender, RoutedEventArgs e)
     {
         if (_loading) return;
-        var testing = _controller.Snapshot().AudioTestActive;
-        if (testing) _controller.StopAudioTest();
         _controller.Settings.RecordMicrophone = MicBox.IsChecked == true;
         _controller.Save();
         Reload();
-        if (testing) _controller.StartAudioTest();
     }
 
     void OpenLink(object sender, System.Windows.Navigation.RequestNavigateEventArgs e)
@@ -435,14 +429,11 @@ public partial class SettingsPage : System.Windows.Controls.UserControl
     void SystemAudioChanged(object sender, RoutedEventArgs e)
     {
         if (_loading) return;
-        var testing = _controller.Snapshot().AudioTestActive;
-        if (testing) _controller.StopAudioTest();
         _controller.Settings.CaptureSystemAudio = SystemAudioBox.IsChecked == true;
         _controller.Save();
         BuildAudio();
         AudioModeBox.IsEnabled = _controller.Settings.CaptureSystemAudio != false;
         BuildApplications();
-        if (testing) _controller.StartAudioTest();
     }
 
     void ReplayDurationChanged(object sender, RoutedPropertyChangedEventArgs<int> e)
@@ -456,13 +447,10 @@ public partial class SettingsPage : System.Windows.Controls.UserControl
     void AudioModeChanged(object sender, SelectionChangedEventArgs e)
     {
         if (_loading || AudioModeBox.SelectedIndex < 0) return;
-        var testing = _controller.Snapshot().AudioTestActive;
-        if (testing) _controller.StopAudioTest();
         _controller.Settings.AudioMode = AudioModeBox.SelectedIndex == 1 ? AudioCaptureMode.Applications : AudioCaptureMode.System;
         _controller.Save();
         BuildAudio();
         BuildApplications();
-        if (testing) _controller.StartAudioTest();
     }
 
     void RefreshAudioApplications(object sender, RoutedEventArgs e) => BuildApplications();
@@ -486,14 +474,11 @@ public partial class SettingsPage : System.Windows.Controls.UserControl
     void ApplicationAudioToggled(object sender, RoutedEventArgs e)
     {
         if (_loading || sender is not System.Windows.Controls.CheckBox { Tag: AudioApplicationEntry app } toggle) return;
-        var testing = _controller.Snapshot().AudioTestActive;
-        if (testing) _controller.StopAudioTest();
         var ids = _controller.Settings.AudioApplicationIds;
         if (toggle.IsChecked == true) { if (!ids.Contains(app.Id, StringComparer.OrdinalIgnoreCase)) ids.Add(app.Id); }
         else ids.RemoveAll(id => id.Equals(app.Id, StringComparison.OrdinalIgnoreCase));
         _controller.Save();
         UpdateApplicationHint();
-        if (testing) _controller.StartAudioTest();
     }
 
     void UpdateApplicationHint() => ApplicationSelectionHint.Text = _controller.Settings.AudioApplicationIds.Count == 0
@@ -506,14 +491,6 @@ public partial class SettingsPage : System.Windows.Controls.UserControl
             return;
         _controller.Settings.DeviceGains[id] = slider.Value / 100d;
         _controller.Save();
-    }
-
-    void ToggleTest(object sender, RoutedEventArgs e)
-    {
-        if (_controller.Snapshot().AudioTestActive)
-            _controller.StopAudioTest();
-        else
-            _controller.StartAudioTest();
     }
 
     void StartupChanged(object sender, RoutedEventArgs e)
