@@ -7,7 +7,7 @@
       <RowDefinition Height="Auto"/>
     </Grid.RowDefinitions>
     <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled" Padding="18,16,18,8">
-      <StackPanel>
+      <StackPanel MaxWidth="900">
         <Border Background="{StaticResource Card}" BorderBrush="{StaticResource Line}" BorderThickness="1" CornerRadius="12" Padding="14,12">
           <StackPanel>
             <Grid>
@@ -103,7 +103,7 @@
     </ScrollViewer>
 
     <Border Grid.Row="1" BorderBrush="{StaticResource Line}" BorderThickness="0,1,0,0" Padding="14,8">
-      <Grid>
+      <Grid MaxWidth="932">
         <Button x:Name="FolderButton" HorizontalAlignment="Left" Click="OpenFolder" ToolTip="Open folder" AutomationProperties.Name="Open save location"
                 Cursor="Hand" FocusVisualStyle="{StaticResource FocusVisual}">
           <Button.Template>

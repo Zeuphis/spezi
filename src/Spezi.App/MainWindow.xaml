@@ -39,7 +39,7 @@
     </Grid>
 
     <Border x:Name="Tabs" Grid.Row="1" BorderBrush="{StaticResource Line}" BorderThickness="0,0,0,1" Margin="8,0,8,0">
-      <UniformGrid Columns="3">
+      <UniformGrid Columns="3" MaxWidth="900">
         <Button x:Name="CaptureNav" Style="{StaticResource TabButton}" Click="ShowCapture" AutomationProperties.Name="Recording">
           <StackPanel Orientation="Horizontal">
             <Grid Width="16" Height="16" Margin="0,0,7,0">
