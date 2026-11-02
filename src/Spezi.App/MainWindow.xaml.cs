@@ -34,15 +34,15 @@ public partial class MainWindow : Window
         Activated += (_, _) => { if (_settings.IsVisible && _settings.IsHotkeyEditing) BeginHotkeyEdit(); };
         Deactivated += (_, _) => EndHotkeyEdit();
         _controller.Notice += OnNotice;
-        _controller.LibraryChanged += () => Dispatcher.Invoke(() =>
+        _controller.LibraryChanged += () => Dispatcher.BeginInvoke(() =>
         {
             _capture.RefreshClips();
             if (Body.Content == _gallery) _gallery.RefreshList();
         });
-        _controller.StateChanged += () => Dispatcher.Invoke(RefreshNav);
-        _hotkeys.Pressed += id => Dispatcher.Invoke(() => _controller.HandleHotkey(id));
-        _tray.OpenRequested += () => Dispatcher.Invoke(BringForward);
-        _tray.ExitRequested += () => Dispatcher.Invoke(ExitApp);
+        _controller.StateChanged += () => Dispatcher.BeginInvoke(RefreshNav);
+        _hotkeys.Pressed += id => Dispatcher.BeginInvoke(() => _controller.HandleHotkey(id));
+        _tray.OpenRequested += () => Dispatcher.BeginInvoke(BringForward);
+        _tray.ExitRequested += () => Dispatcher.BeginInvoke(ExitApp);
         _capture.OpenGallery += (_, _) => ShowGallery(this, new RoutedEventArgs());
         _capture.OpenSettings += (_, _) => ShowSettings(this, new RoutedEventArgs());
         StateChanged += (_, _) =>
@@ -102,7 +102,7 @@ public partial class MainWindow : Window
 
     void OnNotice(RecorderNotice notice)
     {
-        Dispatcher.Invoke(() =>
+        Dispatcher.BeginInvoke(() =>
         {
             var status = notice.Kind is NoticeKind.ReplayStarted or NoticeKind.ReplayStopped or NoticeKind.ClipSaved
                 or NoticeKind.SessionStarted or NoticeKind.SessionStopped;

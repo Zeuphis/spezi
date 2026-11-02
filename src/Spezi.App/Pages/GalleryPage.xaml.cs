@@ -63,7 +63,7 @@ public partial class GalleryPage : System.Windows.Controls.UserControl
         {
             if (generation != _generation || !task.IsCompletedSuccessfully)
                 return;
-            Dispatcher.Invoke(() =>
+            Dispatcher.BeginInvoke(() =>
             {
                 if (generation != _generation) return;
                 foreach (var row in _rows) HideRow(row);

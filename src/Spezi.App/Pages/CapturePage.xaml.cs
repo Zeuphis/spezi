@@ -155,7 +155,7 @@ public partial class CapturePage : System.Windows.Controls.UserControl
         {
             if (generation != _generation || !task.IsCompletedSuccessfully)
                 return;
-            Dispatcher.Invoke(() =>
+            Dispatcher.BeginInvoke(() =>
             {
                 if (generation != _generation || cancellation.IsCancellationRequested) return;
                 _recent.Clear();
@@ -201,9 +201,20 @@ public partial class CapturePage : System.Windows.Controls.UserControl
     async void SaveClip(object sender, RoutedEventArgs e)
     {
         ClipButton.IsEnabled = false;
-        await _controller.SaveClip();
-        RefreshStatus();
-        RefreshClips();
+        try
+        {
+            await _controller.SaveClip();
+        }
+        catch (Exception ex)
+        {
+            // async void: an escaping exception would terminate the app.
+            AppLog.Error("Saving the clip failed.", ex);
+        }
+        finally
+        {
+            RefreshStatus();
+            RefreshClips();
+        }
     }
 
     void ToggleRecord(object sender, RoutedEventArgs e)
