@@ -1,0 +1,13 @@
+PASS gallery video opens and advances
+PASS gallery player has audio and is unmuted
+PASS pause control stops the playback clock
+PASS seek control changes video position
+PASS volume control changes playback volume
+PASS gallery test runs while replay capture is active
+PASS actual gallery row loads thumbnail and duration
+PASS gallery thumbnail is opaque
+PASS gallery preview uses a small cached image
+PASS gallery search finds a nested video by its game folder
+PASS gallery search excludes non-matching videos
+PASS clearing gallery search restores nested videos
+MEDIA_TEST_OK

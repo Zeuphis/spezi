@@ -1,0 +1,4 @@
+PASS development code and checks copied; no release publish performed.
+PASS original portable Spezi.exe and Spezi.dll remain unchanged.
+PASS original Spezi installer remains unchanged.
+Backup: C:\Users\Venom\spezi\.backups\replay-app-audio-20261009-091724

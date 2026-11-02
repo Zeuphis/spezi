@@ -1,0 +1,153 @@
+<UserControl x:Class="Spezi.App.GalleryPage"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+  <UserControl.Resources>
+    <Style x:Key="GalleryButton" TargetType="Button">
+      <Setter Property="Height" Value="34"/>
+      <Setter Property="Width" Value="34"/>
+      <Setter Property="Background" Value="{StaticResource Field}"/>
+      <Setter Property="Foreground" Value="{StaticResource Muted}"/>
+      <Setter Property="FontSize" Value="12"/>
+      <Setter Property="Padding" Value="8,0"/>
+      <Setter Property="BorderBrush" Value="{StaticResource Line}"/>
+      <Setter Property="BorderThickness" Value="1"/>
+      <Setter Property="Cursor" Value="Hand"/>
+      <Setter Property="FocusVisualStyle" Value="{StaticResource FocusVisual}"/>
+      <Setter Property="Template">
+        <Setter.Value>
+          <ControlTemplate TargetType="Button">
+            <Border x:Name="Frame" CornerRadius="8" Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}" Padding="{TemplateBinding Padding}">
+              <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+            </Border>
+            <ControlTemplate.Triggers>
+              <Trigger Property="IsMouseOver" Value="True"><Setter TargetName="Frame" Property="Background" Value="{StaticResource FieldHover}"/><Setter Property="Foreground" Value="{StaticResource Ink}"/></Trigger>
+              <Trigger Property="IsPressed" Value="True"><Setter TargetName="Frame" Property="BorderBrush" Value="{DynamicResource Accent}"/></Trigger>
+            </ControlTemplate.Triggers>
+          </ControlTemplate>
+        </Setter.Value>
+      </Setter>
+    </Style>
+    <Style x:Key="PreviewButton" TargetType="Button">
+      <Setter Property="Padding" Value="0"/>
+      <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
+      <Setter Property="Cursor" Value="Hand"/>
+      <Setter Property="FocusVisualStyle" Value="{StaticResource FocusVisual}"/>
+      <Setter Property="Template"><Setter.Value><ControlTemplate TargetType="Button"><ContentPresenter/></ControlTemplate></Setter.Value></Setter>
+    </Style>
+    <Style TargetType="ContextMenu">
+      <Setter Property="Background" Value="{StaticResource Card}"/>
+      <Setter Property="Foreground" Value="{StaticResource Ink}"/>
+      <Setter Property="BorderBrush" Value="{StaticResource Line}"/>
+      <Setter Property="BorderThickness" Value="1"/>
+      <Setter Property="Padding" Value="4"/>
+      <Setter Property="FontSize" Value="12"/>
+    </Style>
+    <Style TargetType="MenuItem">
+      <Setter Property="Foreground" Value="{StaticResource Ink}"/>
+      <Setter Property="Padding" Value="10,7"/>
+      <Setter Property="Template">
+        <Setter.Value>
+          <ControlTemplate TargetType="MenuItem">
+            <Border x:Name="Item" Background="Transparent" CornerRadius="5" Padding="{TemplateBinding Padding}">
+              <ContentPresenter ContentSource="Header" RecognizesAccessKey="True"/>
+            </Border>
+            <ControlTemplate.Triggers>
+              <Trigger Property="IsHighlighted" Value="True"><Setter TargetName="Item" Property="Background" Value="{StaticResource FieldHover}"/></Trigger>
+              <Trigger Property="IsEnabled" Value="False"><Setter Property="Opacity" Value="0.45"/></Trigger>
+            </ControlTemplate.Triggers>
+          </ControlTemplate>
+        </Setter.Value>
+      </Setter>
+    </Style>
+  </UserControl.Resources>
+  <Grid Margin="18,20,18,12" MaxWidth="620">
+    <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*"/></Grid.RowDefinitions>
+    <StackPanel Margin="0,0,0,16">
+      <Grid Margin="0,0,0,16">
+        <StackPanel>
+          <TextBlock Text="Gallery" FontSize="26" FontWeight="SemiBold"/>
+          <TextBlock x:Name="LibraryText" Text="Your saved moments." Foreground="{StaticResource Muted}" FontSize="11" Margin="0,4,40,0"/>
+        </StackPanel>
+        <Button Style="{StaticResource GalleryButton}" HorizontalAlignment="Right" VerticalAlignment="Center" Click="OpenRoot" ToolTip="Open clips folder" AutomationProperties.Name="Open clips folder" Background="Transparent">
+          <Path Data="M2,6 H8 L10,8 H20 V18 H2 Z" Stroke="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}" StrokeThickness="1.4" Width="16" Height="14" Stretch="Uniform"/>
+        </Button>
+      </Grid>
+      <Grid>
+        <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="8"/><ColumnDefinition Width="96"/></Grid.ColumnDefinitions>
+        <Border Height="34" CornerRadius="8" BorderThickness="1" Background="{StaticResource Field}">
+          <Border.Style>
+            <Style TargetType="Border"><Setter Property="BorderBrush" Value="{StaticResource Line}"/><Style.Triggers><Trigger Property="IsKeyboardFocusWithin" Value="True"><Setter Property="BorderBrush" Value="{DynamicResource Accent}"/></Trigger></Style.Triggers></Style>
+          </Border.Style>
+          <Grid>
+            <TextBlock Text="&#xE721;" FontFamily="Segoe MDL2 Assets" Foreground="{StaticResource Muted}" FontSize="12" Margin="10,0,0,0" HorizontalAlignment="Left" VerticalAlignment="Center" IsHitTestVisible="False"/>
+            <TextBox x:Name="SearchBox" TextChanged="SearchChanged" AutomationProperties.Name="Search clips or games" FontSize="11.5" Margin="30,0,28,0" Padding="0" VerticalContentAlignment="Center" Background="Transparent" BorderThickness="0">
+              <TextBox.Template><ControlTemplate TargetType="TextBox"><ScrollViewer x:Name="PART_ContentHost" VerticalAlignment="Center" Focusable="False"/></ControlTemplate></TextBox.Template>
+            </TextBox>
+            <TextBlock x:Name="SearchPlaceholder" Text="Search clips or games" FontSize="11.5" Foreground="{StaticResource Muted}" Margin="30,0,28,0" VerticalAlignment="Center" IsHitTestVisible="False"/>
+            <Button x:Name="ClearSearchButton" Style="{StaticResource GalleryButton}" Width="26" Height="26" Background="Transparent" BorderThickness="0" Padding="0" HorizontalAlignment="Right" Margin="0,0,3,0" Visibility="Collapsed" Click="ClearSearch" ToolTip="Clear search" AutomationProperties.Name="Clear search"><TextBlock Text="&#xE711;" FontFamily="Segoe MDL2 Assets" FontSize="9" Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}"/></Button>
+          </Grid>
+        </Border>
+        <Button x:Name="SortButton" Grid.Column="2" Style="{StaticResource GalleryButton}" Width="96" Click="ToggleSort" ToolTip="Newest first" AutomationProperties.Name="Sort newest first">
+          <StackPanel Orientation="Horizontal"><TextBlock x:Name="SortLabel" Text="Newest" FontSize="11.5" Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}"/><TextBlock Text="&#xE8CB;" FontFamily="Segoe MDL2 Assets" FontSize="11" Margin="8,0,0,0" VerticalAlignment="Center" Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}"/></StackPanel>
+        </Button>
+      </Grid>
+    </StackPanel>
+    <Grid Grid.Row="1">
+      <StackPanel x:Name="EmptyState" HorizontalAlignment="Center" VerticalAlignment="Center" MaxWidth="260" Margin="12">
+        <Border Width="52" Height="52" Background="{DynamicResource AccentSoft}" CornerRadius="16" Margin="0,0,0,16"><TextBlock Text="&#xE714;" FontFamily="Segoe MDL2 Assets" FontSize="23" Foreground="{DynamicResource AccentText}" HorizontalAlignment="Center" VerticalAlignment="Center"/></Border>
+        <TextBlock x:Name="EmptyTitle" Text="Your first highlight awaits" FontSize="17" FontWeight="SemiBold" TextAlignment="Center"/>
+        <TextBlock x:Name="EmptyText" Text="Save a clip while you play. Your moments will show up here." Foreground="{StaticResource Muted}" FontSize="12" TextAlignment="Center" Margin="0,8,0,0"/>
+      </StackPanel>
+      <ListBox x:Name="Clips" VirtualizingPanel.IsVirtualizing="True" VirtualizingPanel.VirtualizationMode="Recycling" VirtualizingPanel.CacheLength="0" VirtualizingPanel.ScrollUnit="Pixel" VirtualizingStackPanel.CleanUpVirtualizedItem="RowCleanUp" ScrollViewer.HorizontalScrollBarVisibility="Disabled" ScrollViewer.VerticalScrollBarVisibility="Auto">
+        <ListBox.ItemContainerStyle>
+          <Style TargetType="ListBoxItem" BasedOn="{StaticResource {x:Type ListBoxItem}}"><Setter Property="Margin" Value="0,0,2,12"/><Setter Property="HorizontalContentAlignment" Value="Stretch"/></Style>
+        </ListBox.ItemContainerStyle>
+        <ListBox.ItemTemplate>
+          <DataTemplate>
+            <Border x:Name="ClipCard" Background="{StaticResource Card}" BorderThickness="1" CornerRadius="12" Padding="8" Loaded="RowVisible" Unloaded="RowHidden" DataContextChanged="RowContextChanged" IsVisibleChanged="RowVisibilityChanged">
+              <Border.Style><Style TargetType="Border"><Setter Property="BorderBrush" Value="{StaticResource Line}"/><Style.Triggers><Trigger Property="IsMouseOver" Value="True"><Setter Property="BorderBrush" Value="#59636E"/></Trigger></Style.Triggers></Style></Border.Style>
+              <StackPanel>
+                <Button x:Name="PlayButton" Style="{StaticResource PreviewButton}" Click="Play" ToolTip="Open in default player" AutomationProperties.Name="Open clip in default player">
+                  <Grid>
+                    <Viewbox Stretch="Uniform">
+                      <Grid Width="320" Height="180" Background="#181C21">
+                        <TextBlock Text="&#xE714;" FontFamily="Segoe MDL2 Assets" FontSize="28" Foreground="{StaticResource Line}" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        <Image Source="{Binding Thumbnail}" Stretch="UniformToFill" RenderOptions.BitmapScalingMode="HighQuality"/>
+                      </Grid>
+                    </Viewbox>
+                    <Border Background="#D91B2026" CornerRadius="5" Padding="8,4" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="10"><TextBlock Text="{Binding Game}" Foreground="{StaticResource Ink}" FontSize="10.5" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" MaxWidth="220" TextWrapping="NoWrap"/></Border>
+                    <Border x:Name="PlayCircle" Width="42" Height="42" CornerRadius="21" Background="#CC20262D" BorderBrush="#90FFFFFF" BorderThickness="1" HorizontalAlignment="Center" VerticalAlignment="Center"><Path Data="M0,0 L0,14 L11,7 Z" Fill="White" Width="11" Height="14" Stretch="Fill" Margin="3,0,0,0"/></Border>
+                    <Border Background="#E61B2026" CornerRadius="5" Padding="7,3" HorizontalAlignment="Right" VerticalAlignment="Bottom" Margin="10"><TextBlock Text="{Binding DurationText}" FontSize="10.5" FontWeight="SemiBold" Foreground="White"/></Border>
+                  </Grid>
+                </Button>
+                <Grid Margin="5,11,3,3">
+                  <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="34"/></Grid.ColumnDefinitions>
+                  <StackPanel VerticalAlignment="Center">
+                    <TextBlock Text="{Binding DisplayName}" ToolTip="{Binding Name}" FontSize="13" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" TextWrapping="NoWrap" Margin="0,0,9,5"/>
+                    <TextBlock FontSize="10.5" Foreground="{StaticResource Muted}" TextTrimming="CharacterEllipsis" TextWrapping="NoWrap"><Run Text="{Binding When, Mode=OneWay}"/><Run Text="  ·  "/><Run Text="{Binding SizeText, Mode=OneWay}"/></TextBlock>
+                  </StackPanel>
+                  <Button x:Name="ClipMenuButton" Grid.Column="1" Style="{StaticResource GalleryButton}" Background="Transparent" BorderThickness="0" Click="ShowClipMenu" ToolTip="Clip actions" AutomationProperties.Name="Clip actions">
+                    <TextBlock Text="&#xE712;" FontFamily="Segoe MDL2 Assets" FontSize="16" Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}"/>
+                    <Button.ContextMenu>
+                      <ContextMenu DataContext="{Binding PlacementTarget.DataContext, RelativeSource={RelativeSource Self}}" Placement="Bottom">
+                        <MenuItem Header="Open in default player" Click="Play"/>
+                        <MenuItem Header="Rename" Click="Rename"/>
+                        <MenuItem Header="Open folder" Click="OpenItem"/>
+                        <Separator/>
+                        <MenuItem Header="Delete" Foreground="{StaticResource Warn}" Click="Delete"/>
+                      </ContextMenu>
+                    </Button.ContextMenu>
+                  </Button>
+                </Grid>
+              </StackPanel>
+            </Border>
+            <DataTemplate.Triggers>
+              <Trigger SourceName="PlayButton" Property="IsMouseOver" Value="True"><Setter TargetName="PlayCircle" Property="Background" Value="{DynamicResource Accent}"/><Setter TargetName="PlayCircle" Property="BorderBrush" Value="{DynamicResource Accent}"/></Trigger>
+              <Trigger SourceName="PlayButton" Property="IsKeyboardFocused" Value="True"><Setter TargetName="PlayCircle" Property="BorderBrush" Value="{DynamicResource Accent}"/></Trigger>
+            </DataTemplate.Triggers>
+          </DataTemplate>
+        </ListBox.ItemTemplate>
+      </ListBox>
+    </Grid>
+  </Grid>
+</UserControl>

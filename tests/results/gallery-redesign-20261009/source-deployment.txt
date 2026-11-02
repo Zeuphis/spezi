@@ -1,0 +1,6 @@
+PASS redesigned Gallery source and previews copied.
+PASS actual MP4 previews, game search, sorting, clear search, clip menus and narrow layout.
+PASS recycling, hidden-image release and cache reuse while scrolling.
+PASS EXE and installer hashes remain unchanged; no release build performed.
+Backup: C:\Users\Venom\spezi\.backups\gallery-redesign-20261009-125011
+Changed 7 source/document files.

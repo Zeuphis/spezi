@@ -1,0 +1,33 @@
+﻿# Build-Ausgaben
+[Bb]in/
+[Oo]bj/
+dist/
+publish/
+TestResults/
+*.pdb
+*.cache
+*.log
+
+# Release-Binaries (zu gross fuer Git, gehoeren in GitHub Releases)
+installer/*.exe
+updater/*.exe
+*.msi
+
+# Lokale Backups
+.backups/
+
+# IDE
+.vs/
+.vscode/
+.idea/
+*.user
+*.suo
+
+# Secrets
+.env
+.env.*
+*.pfx
+*.pem
+*.key
+*.snk
+secrets.json

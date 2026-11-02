@@ -1,0 +1,3 @@
+PASS profiles, source, system audio switch and custom resolution load correctly
+PASS real user settings remain unchanged
+SETTINGS_TEST_OK

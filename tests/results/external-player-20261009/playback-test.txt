@@ -1,0 +1,11 @@
+PASS built-in player type removed
+PASS built-in player XAML removed from compiled app
+CHECK creating isolated controller
+CHECK loading gallery
+CHECK waiting for gallery entries
+PASS gallery playback button targets test clip with spaces and Unicode
+PASS gallery playback invokes Windows without creating an in-app player
+PASS recent clip playback button targets the same test clip
+PASS recent playback invokes Windows without creating an in-app player
+PASS user preferences preserved
+EXTERNAL_PLAYBACK_CHECK_OK

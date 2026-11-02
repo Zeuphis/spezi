@@ -1,0 +1,26 @@
+PASS The isolated installer test identity is unused
+PASS Installer refuses to replace files while Spezi is running
+PASS The previous release installs successfully under an isolated identity
+PASS The test installation starts at version 1.0.1
+PASS Installation registers the correct program folder
+PASS Updater blocks a running app and leaves the previous executable intact
+PASS Updater automatically finds and updates the registered installation
+PASS Executable and Windows uninstall entry both show version 1.1.0
+PASS Update preserves existing clips and custom preferences
+PASS All 485 packaged files match the published release
+PASS The updated self-contained application starts and passes its settings test
+PASS The full installer can repair the same installation
+PASS Repair reuses the existing uninstaller
+PASS Updater also updates an existing portable program folder
+PASS All 485 packaged files match the published release
+PASS Portable update keeps user files and creates no uninstaller
+PASS Portable update does not redirect the installed app registration
+PASS Updater rejects an empty folder without creating an installation
+PASS Updater rejects a newer executable without overwriting it
+PASS Published app records replay and session with video and an AAC audio track
+PASS Capture test confirms valid replay and session files
+PASS A fresh recording is available for the gallery test
+PASS The published gallery passes layout, search, sorting and thumbnail checks
+PASS Real Spezi preferences and installation registration remain unchanged
+RELEASE_TEST_OK
+PASS Isolated uninstallation removes app registration and keeps user files

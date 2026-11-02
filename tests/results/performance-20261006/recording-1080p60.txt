@@ -1,0 +1,24 @@
+PASS clock conversion, including four days uptime
+PASS AAC 960-sample chunks: 47 packets, continuous timestamps
+PASS AAC 9600-sample chunks: 47 packets, continuous timestamps
+PASS replay buffer rolls over and retains a decodable keyframe
+NOTICE ReplayStarted: Rückblick läuft. Die letzten 3 Minuten können als Clip gespeichert werden.
+NOTICE SessionStarted: Aufnahme gestartet.
+LIVE encoder=NVIDIA H.264 Encoder MFT, capture=61,0, encoded=60,0, dropped=0, buffered=00:00:03.9337659
+NOTICE ClipSaved: Clip gespeichert (0:03).
+NOTICE ClipSaved: Clip gespeichert (0:03).
+NOTICE SessionStopped: Aufnahme gespeichert.
+NOTICE ReplayStopped: Rückblick beendet.
+PASS Overwatch_Clip_2026-10-06_11-21-13-821_19c155708045.mp4 videoFrames=237 audioFrames=177 videoEnd=3,950s audioEnd=3,787s maxVideoGap=0,0178s maxAudioGap=0,0213s
+PASS Rainbow Six Siege_Clip_2026-10-06_11-21-13-821_8b17971133f1.mp4 videoFrames=237 audioFrames=177 videoEnd=3,950s audioEnd=3,787s maxVideoGap=0,0178s maxAudioGap=0,0213s
+PASS Overwatch_Aufnahme_2026-10-06_11-21-13-838_319360f937d2.mp4 videoFrames=721 audioFrames=555 videoEnd=12,016s audioEnd=11,858s maxVideoGap=0,0182s maxAudioGap=0,0213s
+NOTICE SessionStarted: Aufnahme gestartet.
+NOTICE SessionStopped: Aufnahme gespeichert.
+PASS standalone recording drains and stops capture
+NOTICE SessionStarted: Aufnahme gestartet.
+NOTICE SessionStopped: Aufnahme gespeichert.
+PASS video-only session
+NOTICE SessionStarted: Aufnahme gestartet.
+NOTICE Error: Die Aufnahme konnte nicht vollständig gespeichert werden. Vorhandene Teile liegen im lokalen Sitzungsordner. Kein Schreibzugriff auf den Speicherordner. Wähle in den Einstellungen einen anderen Ordner.
+PASS failed save reports an error and never claims success
+ALL_RECORDING_TESTS_PASSED

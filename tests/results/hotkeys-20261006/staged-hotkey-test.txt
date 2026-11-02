@@ -1,0 +1,21 @@
+PASS clear Page Up / Page Down labels
+PASS page key labels retain modifiers
+PASS both page shortcuts activate without modifiers, using fallback when reserved:  / 
+PASS hotkey field receives keyboard focus
+PASS editing releases the native Page Down shortcut
+PASS editing releases both global hotkeys so existing keys can be reassigned
+PASS registered page keys dispatch both hotkey IDs through the Windows message handler
+PASS Windows accepts page-key input for the isolated test handler
+PASS reserved page keys reach the fallback listener and key repeats trigger once
+PASS page key input is handled instead of scrolling the settings
+PASS Page Down is captured with its correct virtual key and visible label
+PASS page key input is handled instead of scrolling the settings
+PASS Page Up is captured for the recording shortcut
+PASS swapping page shortcuts registers both without a false conflict
+PASS leaving the editor restores the native shortcut and page fallback
+PASS refocusing the editor pauses shortcuts again
+PASS switching away restores shortcuts even if the settings field had focus
+PASS both page key assignments survive serialization
+PASS editing hotkeys starts no recording
+PASS real user settings remain unchanged
+HOTKEY_TEST_OK

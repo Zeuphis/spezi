@@ -1,0 +1,14 @@
+PASS Auto-start waits for a game before starting an idle replay
+PASS A detected game automatically starts real screen capture
+PASS Desktop capture continues beyond eight seconds and retains the original replay buffer
+PASS Returning to a game and tabbing away again never restarts or stops replay
+PASS Saving the desktop replay finishes without blocking the UI
+PASS A clip can be saved while no game is in the foreground
+PASS Saved desktop replay contains playable video and audio covering the complete interval
+PASS Disabling automatic starts does not discard an active replay
+PASS Explicitly turning replay off still stops screen capture
+PASS Disabled auto-start leaves replay off even when a game is detected
+PASS Manually enabled replay also remains active on the desktop
+PASS Real user settings remain unchanged
+CLIP=C:\Users\Venom\AppData\Local\Temp\SpeziBackgroundReplayTest\20261102_131355\Overwatch\Overwatch_Clip_2026-11-02_13-14-08-609_c05af5144ea5.mp4
+BACKGROUND_REPLAY_TEST_OK

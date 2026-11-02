@@ -1,0 +1,5 @@
+PASS slider exists only in Settings; Recording is free of duration controls.
+PASS Settings retains all 20 duration steps, snapping, accent updates and narrow layout.
+PASS EXE and installer remain unchanged; source-only update.
+Backup: C:\Users\Venom\spezi\.backups\settings-only-replay-20261009-123830
+Changed 6 source/document files.

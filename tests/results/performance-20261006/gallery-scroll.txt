@@ -1,0 +1,3 @@
+clips=24 initialReadyMs=814 loadedThumbnails=5 privateMemoryDeltaMB=62,3 workingSetMB=142,9 managedAllocatedMB=84,2 cpuMs=2609
+PASS scrolling loads new visible clips, releases hidden previews and reuses cached previews
+GALLERY_PERFORMANCE_OK

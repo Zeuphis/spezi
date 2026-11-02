@@ -1,0 +1,230 @@
+<UserControl x:Class="Spezi.App.SettingsPage"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:local="clr-namespace:Spezi.App">
+  <UserControl.Resources>
+    <Style x:Key="SettingCard" TargetType="Border">
+      <Setter Property="Background" Value="#252A30"/>
+      <Setter Property="BorderBrush" Value="#353D45"/>
+      <Setter Property="BorderThickness" Value="1"/>
+      <Setter Property="CornerRadius" Value="14"/>
+      <Setter Property="Padding" Value="16"/>
+      <Setter Property="Margin" Value="0,0,0,14"/>
+    </Style>
+    <Style x:Key="SettingLabel" TargetType="TextBlock">
+      <Setter Property="FontSize" Value="11.5"/>
+      <Setter Property="Foreground" Value="{StaticResource Muted}"/>
+      <Setter Property="Margin" Value="0,0,0,7"/>
+      <Setter Property="TextWrapping" Value="Wrap"/>
+    </Style>
+    <Style x:Key="SettingIcon" TargetType="TextBlock">
+      <Setter Property="FontFamily" Value="Segoe MDL2 Assets"/>
+      <Setter Property="FontSize" Value="17"/>
+      <Setter Property="Foreground" Value="{DynamicResource AccentText}"/>
+      <Setter Property="VerticalAlignment" Value="Center"/>
+      <Setter Property="Margin" Value="0,0,10,0"/>
+    </Style>
+    <Style x:Key="ProfileTile" TargetType="Button" BasedOn="{StaticResource GhostButton}">
+      <Setter Property="Padding" Value="6,12"/>
+      <Setter Property="Margin" Value="0"/>
+      <Setter Property="Background" Value="#20252B"/>
+      <Setter Property="BorderBrush" Value="#3B444C"/>
+      <Setter Property="BorderThickness" Value="1"/>
+      <Setter Property="Template">
+        <Setter.Value>
+          <ControlTemplate TargetType="Button">
+            <Border x:Name="Tile" Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="1" CornerRadius="10" Padding="{TemplateBinding Padding}">
+              <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+            </Border>
+            <ControlTemplate.Triggers>
+              <Trigger Property="IsMouseOver" Value="True"><Setter TargetName="Tile" Property="BorderBrush" Value="{DynamicResource Accent}"/></Trigger>
+              <Trigger Property="Tag" Value="on">
+                <Setter TargetName="Tile" Property="Background" Value="{DynamicResource AccentSoft}"/>
+                <Setter TargetName="Tile" Property="BorderBrush" Value="{DynamicResource Accent}"/>
+                <Setter Property="Foreground" Value="{DynamicResource AccentText}"/>
+              </Trigger>
+            </ControlTemplate.Triggers>
+          </ControlTemplate>
+        </Setter.Value>
+      </Setter>
+    </Style>
+    <Style x:Key="AccentSwatch" TargetType="Button">
+      <Setter Property="Width" Value="42"/>
+      <Setter Property="Height" Value="42"/>
+      <Setter Property="Cursor" Value="Hand"/>
+      <Setter Property="Foreground" Value="#101820"/>
+      <Setter Property="FocusVisualStyle" Value="{StaticResource FocusVisual}"/>
+      <Setter Property="Template">
+        <Setter.Value>
+          <ControlTemplate TargetType="Button">
+            <Border x:Name="Ring" BorderBrush="Transparent" BorderThickness="2" Padding="3" CornerRadius="12">
+              <Border Background="{TemplateBinding Background}" CornerRadius="8">
+                <TextBlock x:Name="Check" Text="✓" FontSize="16" FontWeight="SemiBold" Foreground="{TemplateBinding Foreground}" HorizontalAlignment="Center" VerticalAlignment="Center" Visibility="Collapsed"/>
+              </Border>
+            </Border>
+            <ControlTemplate.Triggers>
+              <Trigger Property="Tag" Value="on"><Setter TargetName="Ring" Property="BorderBrush" Value="{StaticResource Ink}"/><Setter TargetName="Check" Property="Visibility" Value="Visible"/></Trigger>
+              <Trigger Property="IsMouseOver" Value="True"><Setter TargetName="Ring" Property="Opacity" Value="0.8"/></Trigger>
+            </ControlTemplate.Triggers>
+          </ControlTemplate>
+        </Setter.Value>
+      </Setter>
+    </Style>
+    <Style x:Key="SettingSwitch" TargetType="CheckBox">
+      <Setter Property="Foreground" Value="{StaticResource Ink}"/>
+      <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
+      <Setter Property="Cursor" Value="Hand"/>
+      <Setter Property="Margin" Value="0,6"/>
+      <Setter Property="FocusVisualStyle" Value="{StaticResource FocusVisual}"/>
+      <Setter Property="Template">
+        <Setter.Value>
+          <ControlTemplate TargetType="CheckBox">
+            <Grid Background="Transparent">
+              <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="38"/></Grid.ColumnDefinitions>
+              <ContentPresenter Margin="0,0,14,0" VerticalAlignment="Center" RecognizesAccessKey="True"/>
+              <Border x:Name="Track" Grid.Column="1" Width="36" Height="20" CornerRadius="10" Background="#46505A" VerticalAlignment="Center">
+                <Ellipse x:Name="Knob" Width="14" Height="14" Fill="#EAF0F2" HorizontalAlignment="Left" Margin="3,0"/>
+              </Border>
+            </Grid>
+            <ControlTemplate.Triggers>
+              <Trigger Property="IsChecked" Value="True">
+                <Setter TargetName="Track" Property="Background" Value="{DynamicResource Accent}"/>
+                <Setter TargetName="Knob" Property="HorizontalAlignment" Value="Right"/>
+                <Setter TargetName="Knob" Property="Fill" Value="{DynamicResource AccentInk}"/>
+              </Trigger>
+              <Trigger Property="IsEnabled" Value="False"><Setter Property="Opacity" Value="0.45"/></Trigger>
+              <Trigger Property="IsMouseOver" Value="True"><Setter TargetName="Track" Property="Opacity" Value="0.8"/></Trigger>
+            </ControlTemplate.Triggers>
+          </ControlTemplate>
+        </Setter.Value>
+      </Setter>
+    </Style>
+  </UserControl.Resources>
+  <ScrollViewer x:Name="SettingsScroll" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+    <StackPanel Margin="18,20,18,20" MaxWidth="760">
+      <Grid Margin="0,0,0,20">
+        <StackPanel>
+          <TextBlock Text="Settings" FontSize="26" FontWeight="SemiBold"/>
+          <TextBlock Text="Your setup. Your game. Your clips." Foreground="{StaticResource Muted}" FontSize="12" Margin="0,5,0,0"/>
+        </StackPanel>
+      </Grid>
+      <Border Background="{DynamicResource AccentSoft}" CornerRadius="8" Padding="10,7" HorizontalAlignment="Left" Margin="0,0,0,18">
+        <StackPanel Orientation="Horizontal"><TextBlock Text="✓" Foreground="{DynamicResource AccentText}" Margin="0,0,7,0"/><TextBlock Text="Changes are saved automatically" FontSize="10.5" Foreground="{StaticResource Ink}"/></StackPanel>
+      </Border>
+
+      <Border x:Name="AppearanceCard" Style="{StaticResource SettingCard}">
+        <StackPanel>
+          <StackPanel Orientation="Horizontal" Margin="0,0,0,16"><TextBlock Text="&#xE790;" Style="{StaticResource SettingIcon}"/><TextBlock Text="Appearance" FontSize="15" FontWeight="SemiBold"/></StackPanel>
+          <TextBlock Text="ACCENT COLOR" Style="{StaticResource SettingLabel}"/>
+          <UniformGrid x:Name="AccentPalette" Columns="6" Margin="-3,0,-3,8">
+            <Button Style="{StaticResource AccentSwatch}" Background="#5CDBA6" CommandParameter="#5CDBA6" ToolTip="Mint" AutomationProperties.Name="Mint" Click="ChooseAccent"/>
+            <Button x:Name="BlueAccentButton" Style="{StaticResource AccentSwatch}" Background="#69B7FF" CommandParameter="#69B7FF" ToolTip="Blue" AutomationProperties.Name="Blue" Click="ChooseAccent"/>
+            <Button Style="{StaticResource AccentSwatch}" Background="#AC8BFA" CommandParameter="#AC8BFA" ToolTip="Violet" AutomationProperties.Name="Violet" Click="ChooseAccent"/>
+            <Button Style="{StaticResource AccentSwatch}" Background="#F38BB5" CommandParameter="#F38BB5" ToolTip="Pink" AutomationProperties.Name="Pink" Click="ChooseAccent"/>
+            <Button Style="{StaticResource AccentSwatch}" Background="#F0AC6A" CommandParameter="#F0AC6A" ToolTip="Orange" AutomationProperties.Name="Orange" Click="ChooseAccent"/>
+            <Button Style="{StaticResource AccentSwatch}" Background="#E2CB6F" CommandParameter="#E2CB6F" ToolTip="Gold" AutomationProperties.Name="Gold" Click="ChooseAccent"/>
+          </UniformGrid>
+          <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions><TextBlock x:Name="AccentName" FontSize="11.5" Foreground="{StaticResource Muted}" VerticalAlignment="Center"/><Button Grid.Column="1" Content="Custom color" Style="{StaticResource SmallButton}" Click="ChooseCustomAccent"/></Grid>
+          <Border Height="1" Background="{StaticResource Line}" Margin="0,15"/>
+          <CheckBox x:Name="ToastBox" Style="{StaticResource SettingSwitch}" Checked="ToastChanged" Unchecked="ToastChanged" Margin="0,0,0,14"><StackPanel><TextBlock Text="Notifications" FontSize="12"/><TextBlock Text="For starts, stops and saved clips." Foreground="{StaticResource Muted}" FontSize="10.5" TextWrapping="Wrap" Margin="0,3,0,0"/></StackPanel></CheckBox>
+          <Grid Margin="0,0,0,4"><Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions><TextBlock Text="Display duration" FontSize="11.5" Foreground="{StaticResource Muted}"/><TextBlock x:Name="ToastDurationText" Grid.Column="1" Foreground="{DynamicResource AccentText}" FontSize="11.5" FontWeight="SemiBold"/></Grid>
+          <Slider x:Name="ToastDurationSlider" Minimum="1" Maximum="15" TickFrequency="0.5" IsSnapToTickEnabled="True" SmallChange="0.5" LargeChange="1" ValueChanged="ToastDurationChanged" AutomationProperties.Name="Notification display duration"/>
+          <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions><TextBlock Text="1 second" FontSize="9.5" Foreground="{StaticResource Muted}"/><TextBlock Grid.Column="1" Text="15 seconds" FontSize="9.5" Foreground="{StaticResource Muted}"/></Grid>
+        </StackPanel>
+      </Border>
+
+      <Border Style="{StaticResource SettingCard}">
+        <StackPanel>
+          <StackPanel Orientation="Horizontal" Margin="0,0,0,14"><TextBlock Text="&#xE823;" Style="{StaticResource SettingIcon}"/><TextBlock Text="Replay" FontSize="15" FontWeight="SemiBold"/></StackPanel>
+          <local:ReplayDurationControl x:Name="ReplayDuration" DurationChanged="ReplayDurationChanged"/>
+          <TextBlock Text="Keep the last 15 seconds to 5 minutes, in 15-second steps." Style="{StaticResource SettingLabel}" Margin="0,5,0,0"/>
+        </StackPanel>
+      </Border>
+
+      <Border Style="{StaticResource SettingCard}">
+        <StackPanel>
+          <StackPanel Orientation="Horizontal" Margin="0,0,0,16"><TextBlock Text="&#xE8B7;" Style="{StaticResource SettingIcon}"/><TextBlock Text="Storage &amp; source" FontSize="15" FontWeight="SemiBold"/></StackPanel>
+          <TextBlock Text="YOUR CLIPS" Style="{StaticResource SettingLabel}"/>
+          <Grid>
+            <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+            <TextBox x:Name="FolderBox" IsReadOnly="True" FontSize="11.5" ToolTip="Save folder"/>
+            <Button Grid.Column="1" Content="Change" Style="{StaticResource SmallButton}" Margin="8,0,0,0" Click="BrowseFolder"/>
+          </Grid>
+          <TextBlock x:Name="DiskText" Foreground="{DynamicResource AccentText}" FontSize="11" Margin="1,8,0,16"/>
+          <TextBlock Text="CAPTURE SOURCE" Style="{StaticResource SettingLabel}"/>
+          <ComboBox x:Name="SourceBox" SelectionChanged="SourceChanged"/>
+          <TextBlock Text="Clips are sorted into game folders, such as Overwatch or Rainbow Six Siege. If no game is detected: General." FontSize="11" Foreground="{StaticResource Muted}" TextWrapping="Wrap" Margin="0,9,0,0"/>
+        </StackPanel>
+      </Border>
+
+      <Border Style="{StaticResource SettingCard}">
+        <StackPanel>
+          <StackPanel Orientation="Horizontal" Margin="0,0,0,16"><TextBlock Text="&#xE714;" Style="{StaticResource SettingIcon}"/><TextBlock Text="Video &amp; quality" FontSize="15" FontWeight="SemiBold"/></StackPanel>
+          <UniformGrid Columns="3" Margin="0,0,0,13">
+            <Button x:Name="EconomyButton" Style="{StaticResource ProfileTile}" Click="UseEconomy" Margin="0,0,6,0"><StackPanel><TextBlock Text="Efficient" FontSize="12" FontWeight="SemiBold" HorizontalAlignment="Center"/><TextBlock Text="720p · 30 FPS" FontSize="9.5" Foreground="{StaticResource Muted}" Margin="0,5,0,0" HorizontalAlignment="Center"/></StackPanel></Button>
+            <Button x:Name="BalancedButton" Style="{StaticResource ProfileTile}" Click="UseBalanced" Margin="0,0,6,0"><StackPanel><TextBlock Text="Balanced" FontSize="12" FontWeight="SemiBold" HorizontalAlignment="Center"/><TextBlock Text="1080p · 60 FPS" FontSize="9.5" Foreground="{StaticResource Muted}" Margin="0,5,0,0" HorizontalAlignment="Center"/></StackPanel></Button>
+            <Button x:Name="HighButton" Style="{StaticResource ProfileTile}" Click="UseHigh"><StackPanel><TextBlock Text="Quality" FontSize="12" FontWeight="SemiBold" HorizontalAlignment="Center"/><TextBlock Text="Up to 1440p · 60 FPS" FontSize="9.5" Foreground="{StaticResource Muted}" Margin="0,5,0,0" HorizontalAlignment="Center"/></StackPanel></Button>
+          </UniformGrid>
+          <TextBlock x:Name="QualityText" FontSize="11.5" TextWrapping="Wrap" Margin="0,0,0,15"/>
+          <Grid>
+            <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="12"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+            <StackPanel><TextBlock Text="RESOLUTION" Style="{StaticResource SettingLabel}"/><ComboBox x:Name="ResolutionBox" SelectionChanged="ResolutionChanged"/></StackPanel>
+            <StackPanel Grid.Column="2"><TextBlock Text="FRAME RATE" Style="{StaticResource SettingLabel}"/><ComboBox x:Name="FpsBox" SelectionChanged="FpsChanged"/></StackPanel>
+          </Grid>
+          <Border Background="#20252B" CornerRadius="8" Padding="10" Margin="0,14,0,8"><TextBlock x:Name="EncoderText" FontSize="10.5" Foreground="{StaticResource Muted}" TextWrapping="Wrap"/></Border>
+          <CheckBox x:Name="CursorBox" Style="{StaticResource SettingSwitch}" Checked="CursorChanged" Unchecked="CursorChanged"><TextBlock Text="Capture cursor" FontSize="12" TextWrapping="Wrap"/></CheckBox>
+          <Expander Header="Advanced options" Foreground="{StaticResource Muted}" FontSize="11.5" Margin="0,8,0,0">
+            <CheckBox x:Name="SoftwareBox" Style="{StaticResource SettingSwitch}" Checked="SoftwareChanged" Unchecked="SoftwareChanged" Margin="0,12,0,0"><StackPanel><TextBlock Text="Allow software encoding" FontSize="12"/><TextBlock Text="Uses significantly more CPU." FontSize="10.5" Foreground="{StaticResource Muted}" TextWrapping="Wrap" Margin="0,3,0,0"/></StackPanel></CheckBox>
+          </Expander>
+        </StackPanel>
+      </Border>
+
+      <Border Style="{StaticResource SettingCard}">
+        <StackPanel>
+          <StackPanel Orientation="Horizontal" Margin="0,0,0,16"><TextBlock Text="&#xE765;" Style="{StaticResource SettingIcon}"/><TextBlock Text="Hotkeys" FontSize="15" FontWeight="SemiBold"/></StackPanel>
+          <Grid Margin="0,0,0,12">
+            <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="165"/></Grid.ColumnDefinitions>
+            <StackPanel VerticalAlignment="Center"><TextBlock Text="Save clip" FontSize="12"/><TextBlock Text="Keep your last moment" FontSize="10.5" Foreground="{StaticResource Muted}" Margin="0,3,5,0" TextWrapping="Wrap"/></StackPanel>
+            <TextBox x:Name="ReplayHotkey" Grid.Column="1" IsReadOnly="True" PreviewKeyDown="CaptureReplayHotkey" GotKeyboardFocus="HotkeyFocused" LostKeyboardFocus="HotkeyUnfocused" FontSize="10.5" FontWeight="SemiBold" TextAlignment="Center" Padding="6,9"/>
+          </Grid>
+          <Grid>
+            <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="165"/></Grid.ColumnDefinitions>
+            <StackPanel VerticalAlignment="Center"><TextBlock Text="Recording" FontSize="12"/><TextBlock Text="Start and stop" FontSize="10.5" Foreground="{StaticResource Muted}" Margin="0,3,5,0"/></StackPanel>
+            <TextBox x:Name="RecordHotkey" Grid.Column="1" IsReadOnly="True" PreviewKeyDown="CaptureRecordHotkey" GotKeyboardFocus="HotkeyFocused" LostKeyboardFocus="HotkeyUnfocused" FontSize="10.5" FontWeight="SemiBold" TextAlignment="Center" Padding="6,9"/>
+          </Grid>
+          <TextBlock Text="Click a field and press your shortcut. Leave the field to activate it." Style="{StaticResource SettingLabel}" Margin="0,13,0,0"/>
+          <TextBlock x:Name="HotkeyError" Foreground="{StaticResource Warn}" TextWrapping="Wrap" FontSize="11" Margin="0,6,0,0"/>
+        </StackPanel>
+      </Border>
+
+      <Border Style="{StaticResource SettingCard}">
+        <StackPanel>
+          <Grid Margin="0,0,0,14"><Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions><StackPanel Orientation="Horizontal"><TextBlock Text="&#xE767;" Style="{StaticResource SettingIcon}"/><TextBlock Text="Audio &amp; microphone" FontSize="15" FontWeight="SemiBold" VerticalAlignment="Center"/></StackPanel><Button x:Name="TestButton" Grid.Column="1" Content="Test audio" Style="{StaticResource SmallButton}" Click="ToggleTest" Margin="8,0,0,0"/></Grid>
+          <CheckBox x:Name="SystemAudioBox" Style="{StaticResource SettingSwitch}" Checked="SystemAudioChanged" Unchecked="SystemAudioChanged" Margin="0,0,0,14"><StackPanel><TextBlock Text="Capture app and system audio" FontSize="12" FontWeight="SemiBold"/><TextBlock Text="You can enable your microphone separately." FontSize="10.5" Foreground="{StaticResource Muted}" TextWrapping="Wrap" Margin="0,3,0,0"/></StackPanel></CheckBox>
+          <TextBlock Text="AUDIO SOURCE" Style="{StaticResource SettingLabel}"/>
+          <ComboBox x:Name="AudioModeBox" SelectionChanged="AudioModeChanged" AutomationProperties.Name="Audioquelle">
+            <ComboBoxItem Content="All system audio"/>
+            <ComboBoxItem x:Name="ApplicationsModeItem" Content="Selected apps only"/>
+          </ComboBox>
+          <TextBlock x:Name="ApplicationAudioSupportText" Style="{StaticResource SettingLabel}" Margin="0,8,0,0" Visibility="Collapsed"/>
+          <StackPanel x:Name="ApplicationAudioPanel" Margin="0,14,0,0" Visibility="Collapsed">
+            <Grid Margin="0,0,0,8"><TextBlock Text="YOUR APPS" Style="{StaticResource SettingLabel}" VerticalAlignment="Center" Margin="0"/><Button Content="Refresh" Style="{StaticResource LinkButton}" HorizontalAlignment="Right" Click="RefreshAudioApplications"/></Grid>
+            <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled" MaxHeight="280"><StackPanel x:Name="ApplicationAudioList"/></ScrollViewer>
+            <TextBlock x:Name="ApplicationSelectionHint" Style="{StaticResource SettingLabel}" Margin="0,5,0,8"/>
+          </StackPanel>
+          <StackPanel x:Name="AudioList"/>
+          <TextBlock Text="Selected sources are mixed into one audio track. Microphone audio is centered (mono); app and system audio stays stereo. Source changes apply to the next recording. Volume can be adjusted while recording." Style="{StaticResource SettingLabel}" Margin="0,8,0,0"/>
+        </StackPanel>
+      </Border>
+
+      <Border Style="{StaticResource SettingCard}">
+        <StackPanel>
+          <StackPanel Orientation="Horizontal" Margin="0,0,0,12"><TextBlock Text="&#xE713;" Style="{StaticResource SettingIcon}"/><TextBlock Text="Background" FontSize="15" FontWeight="SemiBold"/></StackPanel>
+          <CheckBox x:Name="StartupBox" Style="{StaticResource SettingSwitch}" Checked="StartupChanged" Unchecked="StartupChanged"><StackPanel><TextBlock Text="Start with Windows" FontSize="12"/><TextBlock Text="Ready when you are." Foreground="{StaticResource Muted}" FontSize="10.5" Margin="0,3,0,0"/></StackPanel></CheckBox>
+          <Border Height="1" Background="{StaticResource Line}" Margin="0,9"/>
+          <CheckBox x:Name="AutoBox" Style="{StaticResource SettingSwitch}" Checked="AutoChanged" Unchecked="AutoChanged"><StackPanel><TextBlock Text="Start replay automatically" FontSize="12"/><TextBlock Text="Starts when a game is in the foreground. Keeps capturing your selected source, including the desktop when recording a screen, until you turn replay off." Foreground="{StaticResource Muted}" FontSize="10.5" TextWrapping="Wrap" Margin="0,3,0,0"/></StackPanel></CheckBox>
+        </StackPanel>
+      </Border>
+    </StackPanel>
+  </ScrollViewer>
+</UserControl>

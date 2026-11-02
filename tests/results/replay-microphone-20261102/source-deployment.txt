@@ -1,0 +1,5 @@
+SOURCE_DEPLOYMENT_OK
+All changed files match the tested sources.
+Existing EXE, installer, updater and release checksums are unchanged.
+Backup: 
+C:\Users\Venom\spezi\.backups\replay-microphone-20261102-131635

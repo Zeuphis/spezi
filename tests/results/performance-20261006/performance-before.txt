@@ -1,0 +1,5 @@
+audioBlocks=1000 elapsedMs=21,68 managedAllocatedBytes=15440040
+aacFrames=500 elapsedMs=16,91 managedAllocatedBytes=2308040
+gpuConversions=300 elapsedMs=98,51 managedAllocatedBytes=31162200
+capture1920x1080fps60 cpuPercent=0,234 workingSetMB=166,0 privateMB=265,7 allocatedMBperSecond=4,177 replayMB=18,22 encodedFps=60,0 dropped=0
+PERFORMANCE_TEST_OK

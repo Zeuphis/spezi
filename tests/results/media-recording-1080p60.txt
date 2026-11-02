@@ -1,0 +1,24 @@
+PASS clock conversion, including four days uptime
+PASS AAC 960-sample chunks: 47 packets, continuous timestamps
+PASS AAC 9600-sample chunks: 47 packets, continuous timestamps
+PASS replay buffer rolls over and retains a decodable keyframe
+NOTICE ReplayStarted: Rückblick läuft. Die letzten 3 Minuten können als Clip gespeichert werden.
+NOTICE SessionStarted: Aufnahme gestartet.
+LIVE encoder=NVIDIA H.264 Encoder MFT, capture=61,0, encoded=60,0, dropped=0, buffered=00:00:03.9498825
+NOTICE ClipSaved: Clip gespeichert (0:03).
+NOTICE ClipSaved: Clip gespeichert (0:03).
+NOTICE SessionStopped: Aufnahme gespeichert.
+NOTICE ReplayStopped: Rückblick beendet.
+PASS Spezi_Clip_2026-10-06_00-28-48-976_e36e63dbef1c43e984f62b876ee13847.mp4 videoFrames=238 audioFrames=178 videoEnd=3,967s audioEnd=3,801s maxVideoGap=0,0172s maxAudioGap=0,0213s
+PASS Spezi_Clip_2026-10-06_00-28-48-976_1786740440354939b7a5a8a675ca4e6b.mp4 videoFrames=238 audioFrames=178 videoEnd=3,967s audioEnd=3,801s maxVideoGap=0,0172s maxAudioGap=0,0213s
+PASS Spezi_Session_2026-10-06_00-28-49-014_86eb92b210a84be0a7b04b35939b6e63.mp4 videoFrames=722 audioFrames=556 videoEnd=12,033s audioEnd=11,876s maxVideoGap=0,0172s maxAudioGap=0,0213s
+NOTICE SessionStarted: Aufnahme gestartet.
+NOTICE SessionStopped: Aufnahme gespeichert.
+PASS standalone recording drains and stops capture
+NOTICE SessionStarted: Aufnahme gestartet.
+NOTICE SessionStopped: Aufnahme gespeichert.
+PASS video-only session
+NOTICE SessionStarted: Aufnahme gestartet.
+NOTICE Error: Die Aufnahme konnte nicht vollständig gespeichert werden. Vorhandene Teile liegen im lokalen Sitzungsordner. Kein Schreibzugriff auf den Speicherordner. Wähle in den Einstellungen einen anderen Ordner.
+PASS failed save reports an error and never claims success
+ALL_RECORDING_TESTS_PASSED

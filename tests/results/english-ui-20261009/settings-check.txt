@@ -1,0 +1,4 @@
+PASS profiles, source, system audio switch and custom resolution load correctly
+PASS toast duration, palette selection, immediate accent update and preference serialization
+PASS real user settings remain unchanged
+SETTINGS_TEST_OK

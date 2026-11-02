@@ -1,0 +1,4 @@
+Loopback endpoint: Lautsprecher (2- Focusrite USB Audio)
+Decoded AAC peak=0,299591 rms=0,122222, first tone=0,198537, silence=0,000000, resumed tone=0,197869
+PASS audible system audio survives AAC/MP4, pause and resume; opaque thumbnail 1920x1080
+AUDIBLE_CLIP=C:\Users\Venom\AppData\Local\Temp\SpeziRecordingRegression\20261006_002825\Spezi_Session_2026-10-06_00-28-33-907_48fa844a0d124d089e2f50e13c25da19.mp4

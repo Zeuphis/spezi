@@ -1,0 +1,273 @@
+using System.Collections.ObjectModel;
+using System.ComponentModel;
+using System.Diagnostics;
+using System.Text.RegularExpressions;
+using System.Windows;
+using System.Windows.Controls;
+using System.Windows.Media;
+using System.Windows.Media.Imaging;
+using Spezi.Core;
+using Spezi.Core.Recording;
+
+namespace Spezi.App;
+
+public partial class GalleryPage : System.Windows.Controls.UserControl
+{
+    readonly AppController _controller;
+    readonly ObservableCollection<ClipRow> _rows = [];
+    bool _newestFirst = true;
+    int _generation;
+    readonly System.Windows.Threading.DispatcherTimer _searchDelay = new() { Interval = TimeSpan.FromMilliseconds(200) };
+    CancellationTokenSource? _scan;
+
+    public GalleryPage(AppController controller)
+    {
+        InitializeComponent();
+        _controller = controller;
+        Clips.ItemsSource = _rows;
+        Directory.CreateDirectory(ClipCache.Directory);
+        _searchDelay.Tick += (_, _) => { _searchDelay.Stop(); RefreshList(); };
+        Unloaded += (_, _) =>
+        {
+            _generation++;
+            _searchDelay.Stop();
+            _scan?.Cancel();
+            foreach (var row in _rows) HideRow(row);
+        };
+    }
+
+    public void RefreshList()
+    {
+        var generation = ++_generation;
+        _searchDelay.Stop();
+        _scan?.Cancel();
+        _scan?.Dispose();
+        _scan = new CancellationTokenSource();
+        var cancellation = _scan.Token;
+        var directory = _controller.Settings.OutputDirectory;
+        var query = SearchBox.Text.Trim();
+        var newestFirst = _newestFirst;
+        LibraryText.Text = "Loading clips…";
+        Task.Run(() =>
+        {
+            if (!Directory.Exists(directory))
+                return new List<ClipRow>();
+            var files = ClipLibrary.VideoFiles(directory)
+                .Select(path => { cancellation.ThrowIfCancellationRequested(); return new FileInfo(path); })
+                .Where(file => query.Length == 0 || Path.GetRelativePath(directory, file.FullName).Contains(query, StringComparison.OrdinalIgnoreCase))
+                .OrderBy(file => file.LastWriteTimeUtc);
+            if (newestFirst)
+                files = files.OrderByDescending(file => file.LastWriteTimeUtc);
+            return files.Take(400).Select(file => new ClipRow(file, directory)).ToList();
+        }, cancellation).ContinueWith(task =>
+        {
+            if (generation != _generation || !task.IsCompletedSuccessfully)
+                return;
+            Dispatcher.Invoke(() =>
+            {
+                if (generation != _generation) return;
+                foreach (var row in _rows) HideRow(row);
+                _rows.Clear();
+                foreach (var row in task.Result)
+                    _rows.Add(row);
+                EmptyState.Visibility = _rows.Count == 0 ? Visibility.Visible : Visibility.Collapsed;
+                Clips.Visibility = _rows.Count == 0 ? Visibility.Collapsed : Visibility.Visible;
+                EmptyTitle.Text = query.Length == 0 ? "Your first highlight awaits" : "No matching clips";
+                EmptyText.Text = query.Length == 0
+                    ? "Save a clip while you play. Your moments will show up here."
+                    : "Try a different filename or game.";
+                var games = _rows.Select(row => row.Game).Distinct(StringComparer.OrdinalIgnoreCase).Count();
+                LibraryText.Text = _rows.Count == 400 ? "Showing 400 clips" : query.Length > 0
+                    ? $"{_rows.Count} {(_rows.Count == 1 ? "match" : "matches")}" : _rows.Count == 0
+                    ? "Your saved moments." : $"{_rows.Count} {(_rows.Count == 1 ? "clip" : "clips")} · {games} {(games == 1 ? "game" : "games")}";
+            });
+        });
+    }
+
+    async Task LoadDetailsAsync(ClipRow row, int generation)
+    {
+        if (row.Loading || !row.Visible || row.Thumbnail != null) return;
+        row.Loading = true;
+        using var pending = new CancellationTokenSource();
+        row.Pending = pending;
+        try
+        {
+            var details = await ClipCache.GetDetailsAsync(row.Path, pending.Token);
+            if (generation != _generation || !row.Visible || pending.IsCancellationRequested) return;
+            row.DurationText = ClipText.FormatDuration(details.Duration);
+            row.Thumbnail = details.Thumbnail;
+        }
+        catch (OperationCanceledException) { /* scrolled away or changed the search */ }
+        catch (Exception ex) { AppLog.Error("Could not load gallery details: " + row.Path, ex); }
+        finally
+        {
+            row.Pending = null;
+            row.Loading = false;
+            if (pending.IsCancellationRequested && row.Visible && generation == _generation) _ = LoadDetailsAsync(row, generation);
+        }
+    }
+
+    void RowVisible(object sender, RoutedEventArgs e) => ShowRow(sender);
+    void ShowRow(object sender)
+    {
+        if (sender is not FrameworkElement { IsVisible: true, DataContext: ClipRow row } || row.Path.Length == 0) return;
+        row.Visible = true;
+        _ = LoadDetailsAsync(row, _generation);
+    }
+
+    static void HideRow(ClipRow row) { row.Visible = false; row.Pending?.Cancel(); row.Thumbnail = null; }
+    void RowCleanUp(object sender, CleanUpVirtualizedItemEventArgs e) { if (e.Value is ClipRow row) HideRow(row); }
+    void RowHidden(object sender, RoutedEventArgs e) { if (sender is FrameworkElement { DataContext: ClipRow row }) HideRow(row); }
+    void RowVisibilityChanged(object sender, DependencyPropertyChangedEventArgs e)
+    {
+        if (e.NewValue is true) ShowRow(sender);
+        else if (sender is FrameworkElement { DataContext: ClipRow row }) HideRow(row);
+    }
+    void RowContextChanged(object sender, DependencyPropertyChangedEventArgs e)
+    {
+        if (e.OldValue is ClipRow old) HideRow(old);
+        ShowRow(sender);
+    }
+    void SearchChanged(object sender, TextChangedEventArgs e)
+    {
+        if (SearchPlaceholder != null && ClearSearchButton != null)
+        {
+            SearchPlaceholder.Visibility = SearchBox.Text.Length == 0 ? Visibility.Visible : Visibility.Collapsed;
+            ClearSearchButton.Visibility = SearchBox.Text.Length == 0 ? Visibility.Collapsed : Visibility.Visible;
+        }
+        _searchDelay.Stop(); _searchDelay.Start();
+    }
+
+    void ClearSearch(object sender, RoutedEventArgs e) { SearchBox.Clear(); SearchBox.Focus(); }
+
+    void ToggleSort(object sender, RoutedEventArgs e)
+    {
+        _newestFirst = !_newestFirst;
+        SortLabel.Text = _newestFirst ? "Newest" : "Oldest";
+        SortButton.ToolTip = _newestFirst ? "Newest first" : "Oldest first";
+        SortButton.SetValue(System.Windows.Automation.AutomationProperties.NameProperty, _newestFirst ? "Sort newest first" : "Sort oldest first");
+        RefreshList();
+    }
+
+    void ShowClipMenu(object sender, RoutedEventArgs e)
+    {
+        if (sender is not System.Windows.Controls.Button { ContextMenu: { } menu } button) return;
+        menu.PlacementTarget = button;
+        menu.IsOpen = true;
+    }
+
+    void OpenRoot(object sender, RoutedEventArgs e) => OpenFolder(_controller.Settings.OutputDirectory);
+
+    void Play(object sender, RoutedEventArgs e)
+    {
+        if (RowOf(sender) is { Path.Length: > 0 } row)
+            VideoLauncher.Open(row.Path, Window.GetWindow(this));
+    }
+
+    void Rename(object sender, RoutedEventArgs e)
+    {
+        if (RowOf(sender) is not { Path.Length: > 0 } row)
+            return;
+        var next = Prompt.Ask(Window.GetWindow(this), "New filename", Path.GetFileNameWithoutExtension(row.Path));
+        if (string.IsNullOrWhiteSpace(next))
+            return;
+        foreach (var invalid in Path.GetInvalidFileNameChars())
+            next = next.Replace(invalid, '_');
+        var destination = Path.Combine(Path.GetDirectoryName(row.Path)!, next + ".mp4");
+        if (File.Exists(destination))
+        {
+            System.Windows.MessageBox.Show("A file with this name already exists.", "Spezi");
+            return;
+        }
+        File.Move(row.Path, destination);
+        RefreshList();
+    }
+
+    void OpenItem(object sender, RoutedEventArgs e)
+    {
+        if (RowOf(sender) is { Path.Length: > 0 } row)
+            Process.Start(new ProcessStartInfo("explorer.exe", $"/select,\"{row.Path}\"") { UseShellExecute = true });
+    }
+
+    void Delete(object sender, RoutedEventArgs e)
+    {
+        if (RowOf(sender) is not { Path.Length: > 0 } row)
+            return;
+        if (System.Windows.MessageBox.Show($"Delete “{row.Name}”?", "Spezi", MessageBoxButton.OKCancel, MessageBoxImage.Warning) != MessageBoxResult.OK)
+            return;
+        File.Delete(row.Path);
+        RefreshList();
+    }
+
+    static void OpenFolder(string path)
+    {
+        Directory.CreateDirectory(path);
+        Process.Start(new ProcessStartInfo("explorer.exe", path) { UseShellExecute = true });
+    }
+
+    static ClipRow? RowOf(object sender) => (sender as FrameworkElement)?.DataContext as ClipRow;
+
+    public sealed class ClipRow : INotifyPropertyChanged
+    {
+        static readonly Regex GeneratedName = new(@"^.+_(?<kind>Clip|Recording|Session|Aufnahme|Recovered|Wiederhergestellt)_(?:\d{4}-\d{2}-\d{2}_\d{2}-\d{2}-\d{2}|\d{8}_\d{6})(?:[-_]\d{3})?(?:_[0-9a-f]{12,32})?$", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
+        internal bool Visible;
+        internal bool Loading;
+        internal CancellationTokenSource? Pending;
+        public string Path { get; }
+        public string Name { get; }
+        public string Game { get; } = "";
+        public string DisplayName { get; }
+        public string When { get; }
+        public string SizeText { get; }
+        string _duration = "…";
+        ImageSource? _thumbnail;
+
+        ClipRow(string name)
+        {
+            Path = "";
+            Name = name;
+            DisplayName = name;
+            When = "";
+            SizeText = "";
+            _duration = "";
+        }
+
+        public ClipRow(System.IO.FileInfo file, string? root = null)
+        {
+            Path = file.FullName;
+            Name = file.Name;
+            var relative = root == null ? "." : System.IO.Path.GetRelativePath(root, file.DirectoryName!);
+            Game = relative == "." ? "General" : relative.Split(System.IO.Path.DirectorySeparatorChar, System.IO.Path.AltDirectorySeparatorChar)[0];
+            if (Game == "Allgemein") Game = "General"; // Display legacy folders in English without moving files.
+            When = file.LastWriteTime.ToString("MMM d, yyyy  HH:mm");
+            var stem = System.IO.Path.GetFileNameWithoutExtension(Name);
+            var generated = GeneratedName.Match(stem);
+            var kind = generated.Groups["kind"].Value.ToLowerInvariant() switch
+            {
+                "clip" => "Replay",
+                "recovered" or "wiederhergestellt" => "Recovered recording",
+                _ => "Recording"
+            };
+            DisplayName = generated.Success ? $"{kind} · {file.LastWriteTime:HH:mm}" : stem;
+            SizeText = file.Length < 1024 * 1024
+                ? $"{file.Length / 1024.0:0} KB"
+                : $"{file.Length / 1024.0 / 1024.0:0.0} MB";
+        }
+
+        public static ClipRow Note(string text) => new(text);
+
+        public string DurationText
+        {
+            get => _duration;
+            set { _duration = value; PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(DurationText))); }
+        }
+
+        public ImageSource? Thumbnail
+        {
+            get => _thumbnail;
+            set { _thumbnail = value; PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(Thumbnail))); }
+        }
+
+        public event PropertyChangedEventHandler? PropertyChanged;
+    }
+}
