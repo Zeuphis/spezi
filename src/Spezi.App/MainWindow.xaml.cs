@@ -22,6 +22,7 @@ public partial class MainWindow : Window
     public MainWindow(AppController controller)
     {
         InitializeComponent();
+        Loaded += (_, _) => KeepOnScreen();
         _controller = controller;
         _capture = new CapturePage(controller);
         _gallery = new GalleryPage(controller);
@@ -74,7 +75,20 @@ public partial class MainWindow : Window
     {
         Show();
         WindowState = WindowState.Normal;
+        KeepOnScreen();
         Activate();
+    }
+
+    // A window restored partly off-screen (e.g. after a monitor change) looked like clipped content.
+    void KeepOnScreen()
+    {
+        if (WindowState != WindowState.Normal || double.IsNaN(Left) || double.IsNaN(Top)) return;
+        var left = SystemParameters.VirtualScreenLeft; var top = SystemParameters.VirtualScreenTop;
+        var right = left + SystemParameters.VirtualScreenWidth; var bottom = top + SystemParameters.VirtualScreenHeight;
+        var width = ActualWidth > 0 ? ActualWidth : Width; var height = ActualHeight > 0 ? ActualHeight : Height;
+        if (double.IsNaN(width) || double.IsNaN(height)) return;
+        Left = Math.Max(left, Math.Min(Left, right - width));
+        Top = Math.Max(top, Math.Min(Top, bottom - height));
     }
 
     public void RebindHotkeys()
