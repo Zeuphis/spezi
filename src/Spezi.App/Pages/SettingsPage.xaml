@@ -106,11 +106,12 @@
         <StackPanel>
           <TextBlock Text="Settings" FontSize="26" FontWeight="SemiBold"/>
           <TextBlock Text="Your setup. Your game. Your clips." Foreground="{StaticResource Muted}" FontSize="12" Margin="0,5,0,0"/>
+          <StackPanel Orientation="Horizontal" Margin="0,6,0,0">
+            <TextBlock Text="&#xE73E;" FontFamily="Segoe MDL2 Assets" FontSize="9.5" Foreground="{StaticResource Muted}" VerticalAlignment="Center" Margin="0,1,6,0"/>
+            <TextBlock Text="Changes are saved automatically" FontSize="10.5" Foreground="{StaticResource Muted}" VerticalAlignment="Center"/>
+          </StackPanel>
         </StackPanel>
       </Grid>
-      <Border Background="{DynamicResource AccentSoft}" CornerRadius="8" Padding="10,7" HorizontalAlignment="Left" Margin="0,0,0,18">
-        <StackPanel Orientation="Horizontal"><TextBlock Text="✓" Foreground="{DynamicResource AccentText}" Margin="0,0,7,0"/><TextBlock Text="Changes are saved automatically" FontSize="10.5" Foreground="{StaticResource Ink}"/></StackPanel>
-      </Border>
 
       <Border x:Name="AppearanceCard" Style="{StaticResource SettingCard}">
         <StackPanel>

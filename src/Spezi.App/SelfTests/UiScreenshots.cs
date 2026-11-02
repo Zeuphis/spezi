@@ -47,6 +47,11 @@ static partial class SelfTest
             Capture("settings-maximized.png");
             window.WindowState = WindowState.Normal;
             var settings = (SettingsPage)((ContentControl)window.FindName("Body")).Content;
+            Capture("settings-collapsed.png");
+            settings.ToggleSection(0);
+            Capture("settings-expanded.png");
+            settings.ToggleSection(0);
+            for (var i = 0; i < 7; i++) settings.ToggleSection(i);
             ((FrameworkElement)settings.FindName("SystemAudioBox")).BringIntoView();
             Capture("settings-audio.png");
             ((System.Windows.Controls.ScrollViewer)settings.FindName("SettingsScroll")).ScrollToBottom();

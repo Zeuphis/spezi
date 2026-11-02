@@ -18,6 +18,7 @@ public partial class SettingsPage : System.Windows.Controls.UserControl
     public SettingsPage(AppController controller)
     {
         InitializeComponent();
+        MakeSectionsCollapsible();
         _controller = controller;
         VersionText.Text = "Spezi v" + AppVersionText();
         _notifications = new(() => _controller.Settings, _controller.Save);
@@ -40,6 +41,90 @@ public partial class SettingsPage : System.Windows.Controls.UserControl
                     _controller.StopAudioTest();
             }
         };
+    }
+
+    // Every setting card becomes a collapsible section (header row + chevron). Always starts collapsed.
+    readonly List<Action> _sectionToggles = new();
+    internal void ToggleSection(int index) => _sectionToggles[index]();
+
+    void MakeSectionsCollapsible()
+    {
+        var cardStyle = (Style)FindResource("SettingCard");
+        if (SettingsScroll.Content is not StackPanel root) return;
+        foreach (var card in root.Children.OfType<Border>().Where(b => ReferenceEquals(b.Style, cardStyle)).ToList())
+        {
+            if (card.Child is not StackPanel panel || panel.Children.Count < 2 || panel.Children[0] is not FrameworkElement header) continue;
+            var gap = header.Margin.Bottom;
+            panel.Children.RemoveAt(0);
+            var body = new StackPanel { Margin = new Thickness(0, gap, 0, 0) };
+            while (panel.Children.Count > 0) { var child = panel.Children[0]; panel.Children.RemoveAt(0); body.Children.Add(child); }
+            header.Margin = new Thickness(0);
+            var chevron = new TextBlock
+            {
+                Text = "\uE70D", FontFamily = new System.Windows.Media.FontFamily("Segoe MDL2 Assets"), FontSize = 12,
+                Foreground = (System.Windows.Media.Brush)FindResource("Muted"), VerticalAlignment = VerticalAlignment.Center,
+                Margin = new Thickness(10, 0, 2, 0)
+            };
+            var row = new Grid { Background = System.Windows.Media.Brushes.Transparent, Cursor = System.Windows.Input.Cursors.Hand, Focusable = true };
+            row.ColumnDefinitions.Add(new ColumnDefinition());
+            row.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+            row.Children.Add(header);
+            Grid.SetColumn(chevron, 1);
+            row.Children.Add(chevron);
+            var title = header is TextBlock t ? t.Text : FindTitle(header) ?? "Section";
+            System.Windows.Automation.AutomationProperties.SetName(row, title + " (collapsed)");
+            var host = new Border { ClipToBounds = true, Child = body, Visibility = Visibility.Collapsed };
+            panel.Children.Add(row);
+            panel.Children.Add(host);
+            var expanded = false;
+            void Toggle()
+            {
+                expanded = !expanded;
+                System.Windows.Automation.AutomationProperties.SetName(row, title + (expanded ? " (expanded)" : " (collapsed)"));
+                var duration = new Duration(TimeSpan.FromMilliseconds(180));
+                var ease = new System.Windows.Media.Animation.CubicEase { EasingMode = System.Windows.Media.Animation.EasingMode.EaseOut };
+                chevron.Text = expanded ? "\uE70E" : "\uE70D";
+                chevron.BeginAnimation(OpacityProperty, new System.Windows.Media.Animation.DoubleAnimation(0.3, 1, duration));
+                double from;
+                if (expanded)
+                {
+                    host.Visibility = Visibility.Visible;
+                    host.Height = 0;
+                    from = 0;
+                }
+                else from = host.ActualHeight;
+                body.Measure(new System.Windows.Size(host.ActualWidth > 0 ? host.ActualWidth : panel.ActualWidth, double.PositiveInfinity));
+                var to = expanded ? body.DesiredSize.Height : 0;
+                var animation = new System.Windows.Media.Animation.DoubleAnimation(from, to, duration) { EasingFunction = ease };
+                var opening = expanded;
+                animation.Completed += (_, _) =>
+                {
+                    if (opening != expanded) return;
+                    host.BeginAnimation(HeightProperty, null);
+                    host.Height = double.NaN;
+                    if (!opening) host.Visibility = Visibility.Collapsed;
+                };
+                host.BeginAnimation(HeightProperty, animation);
+            }
+            _sectionToggles.Add(Toggle);
+            row.MouseLeftButtonUp += (_, e) => { if (e.OriginalSource is DependencyObject d && IsInsideButton(d, row)) return; Toggle(); };
+            row.KeyDown += (_, e) => { if (e.Key is System.Windows.Input.Key.Enter or System.Windows.Input.Key.Space) { Toggle(); e.Handled = true; } };
+        }
+    }
+
+    static bool IsInsideButton(DependencyObject source, DependencyObject stop)
+    {
+        for (var d = source; d != null && d != stop; d = VisualTreeHelper.GetParent(d))
+            if (d is System.Windows.Controls.Primitives.ButtonBase) return true;
+        return false;
+    }
+
+    static string? FindTitle(DependencyObject root)
+    {
+        if (root is TextBlock t && t.FontWeight.ToOpenTypeWeight() >= 600 && !string.IsNullOrWhiteSpace(t.Text)) return t.Text;
+        foreach (var child in LogicalTreeHelper.GetChildren(root).OfType<DependencyObject>())
+            if (FindTitle(child) is string found) return found;
+        return null;
     }
 
     public void Reload()
