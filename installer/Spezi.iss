@@ -139,13 +139,36 @@ function GetUpdateDirectory(Param: String): String;
 var
   Directory: String;
 begin
+  // 1) Installed via Setup (uninstall key), 2) default install folder,
+  // 3) portable dist folder next to the updater, 4) let the user choose.
   Result := RegisteredDirectory;
   if Result <> '' then Exit;
+  Directory := ExpandConstant('{localappdata}\Programs\{#AppName}');
+  if FileExists(AddBackslash(Directory) + 'Spezi.exe') then
+  begin
+    Result := NormalizeDirectory(Directory);
+    Exit;
+  end;
   Directory := ExpandConstant('{src}\..\dist');
   if FileExists(AddBackslash(Directory) + 'Spezi.exe') then
     Result := NormalizeDirectory(Directory)
   else
     Result := ExpandConstant('{localappdata}\Programs\{#AppName}');
+end;
+
+procedure InitializeWizard;
+begin
+  // Without a registered installation the folder page is the fallback: explain it.
+  if RegisteredDirectory = '' then
+    WizardForm.SelectDirLabel.Caption :=
+      'No Spezi installation from Setup was found. If you use a portable copy, ' +
+      'select the folder that contains Spezi.exe (for example the dist folder).';
+end;
+
+function ShouldSkipPage(PageID: Integer): Boolean;
+begin
+  // Never skip the folder page, even when a previous folder is remembered.
+  Result := False;
 end;
 
 function IsRegisteredUpdate: Boolean;
@@ -189,7 +212,7 @@ begin
   Log('Validating existing Spezi folder: ' + Directory);
   if not FileExists(Directory + 'Spezi.exe') or not FileExists(Directory + 'Spezi.dll') or
      not FileExists(Directory + 'Spezi.runtimeconfig.json') or not GetPackedVersion(Directory + 'Spezi.exe', CurrentVersion) then
-    Result := 'No existing Spezi program was found in this folder. Select the folder containing Spezi.exe, or use Spezi-Setup.exe for a new installation.'
+    Result := 'Spezi.exe was not found in this folder. Click Browse and select the folder that contains Spezi.exe (for a portable copy usually the dist folder), or use Spezi-Setup.exe for a new installation.'
   else if ComparePackedVersion(CurrentVersion, PackageVersion) > 0 then
     Result := 'This folder contains a newer Spezi version. The updater will not downgrade it.';
 end;
