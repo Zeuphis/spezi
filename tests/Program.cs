@@ -8,6 +8,8 @@ using NAudio.CoreAudioApi;
 var report = new List<string>();
 var root = Path.Combine(Path.GetTempPath(), "SpeziRecordingRegression", DateTime.Now.ToString("yyyyMMdd_HHmmss"));
 Directory.CreateDirectory(root);
+// Keep test errors (e.g. intentionally blocked output folders) out of the user's real log.
+Environment.SetEnvironmentVariable("SPEZI_LOG_DIR", root);
 void Log(string text) { report.Add(text); Console.WriteLine(text); }
 void Check(bool condition, string message) { if (!condition) throw new Exception(message); }
 try

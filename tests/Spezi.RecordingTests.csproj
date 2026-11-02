@@ -11,6 +11,7 @@
   <ItemGroup>
     <Compile Remove="Spezi.Tests/**" />
     <Compile Include="../src/Spezi.Core/**/*.cs" Exclude="../src/Spezi.Core/obj/**;../src/Spezi.Core/bin/**" />
+    <PackageReference Include="CommunityToolkit.Mvvm" Version="8.4.0" />
     <PackageReference Include="NAudio" Version="2.2.1" />
     <PackageReference Include="Vortice.Direct3D11" Version="3.8.3" />
     <PackageReference Include="Vortice.MediaFoundation" Version="3.8.3" />

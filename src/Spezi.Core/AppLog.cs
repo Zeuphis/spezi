@@ -5,9 +5,11 @@ namespace Spezi.Core;
 public static class AppLog
 {
     static readonly object Gate = new();
+    // SPEZI_LOG_DIR redirects the log (tests use it so they never write to the user's log).
     public static string FilePath { get; } = Path.Combine(
-        Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-        "Spezi",
+        Environment.GetEnvironmentVariable("SPEZI_LOG_DIR") is { Length: > 0 } dir
+            ? dir
+            : Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Spezi"),
         "spezi.log");
 
     public static void Info(string message) => Write("INFO", message);

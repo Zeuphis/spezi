@@ -81,6 +81,12 @@ public partial class App : System.Windows.Application
             return;
         }
 
+        if (e.Args.Length >= 2 && e.Args[0].Equals("--idle-metrics", StringComparison.OrdinalIgnoreCase))
+        {
+            Shutdown(SelfTest.RunIdleMetrics(e.Args[1]));
+            return;
+        }
+
         if (e.Args.Length >= 2 && e.Args[0].Equals("--ui-screenshots", StringComparison.OrdinalIgnoreCase))
         {
             Shutdown(SelfTest.RunUiScreenshots(e.Args[1]));

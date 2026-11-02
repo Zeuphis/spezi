@@ -11,7 +11,7 @@ public partial class MainWindow : Window
     readonly AppController _controller;
     readonly HotkeyHost _hotkeys = new();
     readonly TrayHost _tray = new();
-    readonly ToastWindow _toast = new();
+    ToastWindow? _toast;
     readonly CapturePage _capture;
     readonly GalleryPage _gallery;
     readonly SettingsPage _settings;
@@ -97,7 +97,32 @@ public partial class MainWindow : Window
     public void Toast(string message, string? path = null)
     {
         var text = string.IsNullOrWhiteSpace(path) ? message : message + " " + path;
-        _toast.ShowMessage(text, _controller.Settings);
+        ShowToast(toast => toast.ShowMessage(text, _controller.Settings));
+    }
+
+    // The toast window can be closed behind our back (Alt+F4, shutdown, owner close).
+    // Recreate it on demand and never let a toast failure reach the error dialog.
+    internal void ShowToast(Action<ToastWindow> show)
+    {
+        for (var attempt = 0; attempt < 2; attempt++)
+        {
+            try
+            {
+                if (_toast == null)
+                {
+                    var created = new ToastWindow();
+                    created.Closed += (_, _) => { if (ReferenceEquals(_toast, created)) _toast = null; };
+                    _toast = created;
+                }
+                show(_toast);
+                return;
+            }
+            catch (Exception ex)
+            {
+                AppLog.Error("Notification could not be shown.", ex);
+                _toast = null;
+            }
+        }
     }
 
     void OnNotice(RecorderNotice notice)
@@ -113,7 +138,7 @@ public partial class MainWindow : Window
                 RefreshTray();
                 return;
             }
-            _toast.ShowNotice(notice, _controller.Capture, _controller.Settings);
+            ShowToast(toast => toast.ShowNotice(notice, _controller.Capture, _controller.Settings));
             RefreshTray();
         });
     }
@@ -178,7 +203,7 @@ public partial class MainWindow : Window
         }
         _hotkeys.Dispose();
         _tray.Dispose();
-        _toast.Close();
+        var toast = _toast; _toast = null; toast?.Close();
         base.OnClosing(e);
     }
 
