@@ -18,7 +18,7 @@
         <Setter.Value>
           <ControlTemplate TargetType="Button">
             <Grid>
-              <Border x:Name="Bd" Background="{DynamicResource Accent}" CornerRadius="12" MinHeight="56"/>
+              <Border x:Name="Bd" Background="{DynamicResource Accent}" CornerRadius="12" MinHeight="52"/>
               <Border x:Name="Sheen" CornerRadius="12" Opacity="0.9">
                 <Border.Background>
                   <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
@@ -28,7 +28,7 @@
                   </LinearGradientBrush>
                 </Border.Background>
               </Border>
-              <ContentPresenter Margin="16,8" VerticalAlignment="Center"/>
+              <ContentPresenter Margin="12,6" VerticalAlignment="Center"/>
             </Grid>
             <ControlTemplate.Triggers>
               <Trigger Property="IsMouseOver" Value="True"><Setter TargetName="Bd" Property="Background" Value="{DynamicResource AccentHover}"/></Trigger>
@@ -52,7 +52,7 @@
       <Setter Property="Template">
         <Setter.Value>
           <ControlTemplate TargetType="Button">
-            <Border x:Name="Bd" Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="1" CornerRadius="12" MinHeight="50" Padding="16,6">
+            <Border x:Name="Bd" Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="1" CornerRadius="12" MinHeight="52" Padding="12,6">
               <ContentPresenter VerticalAlignment="Center"/>
             </Border>
             <ControlTemplate.Triggers>
@@ -96,124 +96,136 @@
       <RowDefinition Height="*"/>
       <RowDefinition Height="Auto"/>
     </Grid.RowDefinitions>
-    <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled" Padding="18,16,18,8">
-      <StackPanel MaxWidth="900">
-        <!-- Hero: replay status -->
-        <Border x:Name="HeroCard" BorderBrush="{StaticResource Line}" BorderThickness="1" CornerRadius="14" Padding="18,16">
-          <Border.Background>
-            <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
-              <GradientStop Color="#2B3037" Offset="0"/>
-              <GradientStop Color="#23272D" Offset="1"/>
-            </LinearGradientBrush>
-          </Border.Background>
-          <StackPanel>
+    <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled" Padding="18,14,18,8">
+      <StackPanel MaxWidth="760">
+        <!-- Hero: the whole card is the replay power button -->
+        <ToggleButton x:Name="ReplayToggle" Cursor="Hand" FocusVisualStyle="{StaticResource FocusVisual}"
+                      AutomationProperties.Name="Replay" Checked="ReplayToggled" Unchecked="ReplayToggled">
+          <ToggleButton.Template>
+            <ControlTemplate TargetType="ToggleButton">
+              <Grid>
+                <ContentPresenter/>
+                <Border x:Name="Hover" CornerRadius="22" Background="Transparent" IsHitTestVisible="False"/>
+              </Grid>
+              <ControlTemplate.Triggers>
+                <Trigger Property="IsMouseOver" Value="True"><Setter TargetName="Hover" Property="Background" Value="#0BFFFFFF"/></Trigger>
+                <Trigger Property="IsPressed" Value="True"><Setter TargetName="Hover" Property="Background" Value="#14000000"/></Trigger>
+              </ControlTemplate.Triggers>
+            </ControlTemplate>
+          </ToggleButton.Template>
+          <Border x:Name="HeroCard" BorderBrush="{StaticResource Line}" BorderThickness="1" CornerRadius="22" MinHeight="286">
+            <Border.Background>
+              <RadialGradientBrush Center="0.5,0.35" GradientOrigin="0.5,0.35" RadiusX="0.75" RadiusY="0.75">
+                <GradientStop Color="#30343B" Offset="0"/>
+                <GradientStop Color="#22262C" Offset="1"/>
+              </RadialGradientBrush>
+            </Border.Background>
+            <Border.Effect><DropShadowEffect x:Name="HeroGlow" BlurRadius="26" ShadowDepth="0" Opacity="0" Color="#AC8BFA"/></Border.Effect>
+            <Grid>
+              <Border x:Name="HeroTint" CornerRadius="21" Background="{DynamicResource AccentSoft}" Opacity="0"/>
+              <StackPanel VerticalAlignment="Center" Margin="16,22">
+                <Grid Width="116" Height="116" HorizontalAlignment="Center">
+                  <Ellipse x:Name="StatusPulse" Fill="{DynamicResource Accent}" Opacity="0" RenderTransformOrigin="0.5,0.5">
+                    <Ellipse.RenderTransform><ScaleTransform x:Name="PulseScale" ScaleX="0.8" ScaleY="0.8"/></Ellipse.RenderTransform>
+                  </Ellipse>
+                  <Ellipse x:Name="StatusMark" Width="104" Height="104" Stroke="{StaticResource Muted}" StrokeThickness="3" Fill="#262A30" Opacity="0.95"/>
+                  <Path x:Name="PowerIcon" Data="M12,2.5 V11.5 M6.7,5.8 A8,8 0 1 0 17.3,5.8" Stroke="{StaticResource Muted}" StrokeThickness="2.2"
+                        StrokeStartLineCap="Round" StrokeEndLineCap="Round" Width="42" Height="42" Stretch="Uniform" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                </Grid>
+                <TextBlock x:Name="StatusText" Text="Replay off" FontSize="24" FontWeight="Bold" HorizontalAlignment="Center" Margin="0,16,0,0"/>
+                <TextBlock x:Name="StatusSub" Text="Press to keep your last moments" Foreground="{StaticResource Muted}" FontSize="12.5" Margin="0,6,0,0" TextWrapping="Wrap" TextAlignment="Center" HorizontalAlignment="Center"/>
+                <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,12,0,0">
+                  <Border Style="{StaticResource Chip}"><TextBlock x:Name="BufferChipText" FontSize="11" FontWeight="SemiBold" Foreground="{StaticResource Ink}"/></Border>
+                  <Border Style="{StaticResource Chip}" Margin="0"><TextBlock x:Name="QualityChipText" FontSize="11" FontWeight="SemiBold" Foreground="{StaticResource Ink}"/></Border>
+                </StackPanel>
+              </StackPanel>
+            </Grid>
+          </Border>
+        </ToggleButton>
+
+        <!-- Actions -->
+        <Grid Margin="0,14,0,0">
+          <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="10"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+          <Button x:Name="ClipButton" Style="{StaticResource HeroClipButton}" Click="SaveClip" AutomationProperties.Name="Save clip">
+            <Button.Effect><DropShadowEffect x:Name="ClipGlow" BlurRadius="18" ShadowDepth="0" Opacity="0" Color="#AC8BFA"/></Button.Effect>
             <Grid>
               <Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
-              <Grid Width="26" Height="26" VerticalAlignment="Center" Margin="0,0,12,0">
-                <Ellipse x:Name="StatusPulse" Fill="{DynamicResource Accent}" Opacity="0" RenderTransformOrigin="0.5,0.5">
-                  <Ellipse.RenderTransform><ScaleTransform x:Name="PulseScale" ScaleX="0.5" ScaleY="0.5"/></Ellipse.RenderTransform>
-                </Ellipse>
-                <Ellipse x:Name="StatusMark" Width="12" Height="12" Fill="{StaticResource Muted}"/>
-              </Grid>
+              <Path Data="M12,3 V13 M7,9 L12,14 L17,9 M5,18 H19" Stroke="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}" StrokeThickness="1.8"
+                    StrokeStartLineCap="Round" StrokeEndLineCap="Round" Width="15" Height="15" Stretch="Uniform" Margin="0,0,8,0" VerticalAlignment="Center"/>
               <StackPanel Grid.Column="1" VerticalAlignment="Center">
-                <TextBlock x:Name="StatusText" Text="Replay off" FontSize="19" FontWeight="SemiBold"/>
-                <TextBlock x:Name="StatusSub" Text="Turn on to keep your last moments ready to save." Foreground="{StaticResource Muted}" FontSize="11.5" Margin="0,2,0,0" TextWrapping="Wrap"/>
+                <TextBlock Text="Save clip" Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}" FontWeight="SemiBold" FontSize="14"/>
+                <TextBlock x:Name="ClipHint" Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}" FontSize="10" Opacity="0.85" Margin="0,1,0,0" TextTrimming="CharacterEllipsis" Visibility="Collapsed"/>
               </StackPanel>
-              <ToggleButton x:Name="ReplayToggle" Grid.Column="2" Style="{StaticResource Switch}" VerticalAlignment="Center"
-                            AutomationProperties.Name="Replay" Checked="ReplayToggled" Unchecked="ReplayToggled"/>
+              <Border Grid.Column="2" CornerRadius="6" Padding="6,2" Margin="6,0,0,0" VerticalAlignment="Center" Background="#22000000" BorderBrush="#44FFFFFF" BorderThickness="1">
+                <TextBlock x:Name="ClipHotkeyText" FontSize="10.5" FontWeight="SemiBold" Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}"/>
+              </Border>
             </Grid>
-            <WrapPanel Margin="38,12,0,0">
-              <Border Style="{StaticResource Chip}"><StackPanel Orientation="Horizontal"><TextBlock Text="&#xE916;" FontFamily="Segoe MDL2 Assets" FontSize="10.5" Foreground="{DynamicResource AccentText}" VerticalAlignment="Center" Margin="0,0,6,0"/><TextBlock x:Name="BufferChipText" FontSize="11" Foreground="{StaticResource Ink}"/></StackPanel></Border>
-              <Border Style="{StaticResource Chip}"><StackPanel Orientation="Horizontal"><TextBlock Text="&#xE714;" FontFamily="Segoe MDL2 Assets" FontSize="10.5" Foreground="{DynamicResource AccentText}" VerticalAlignment="Center" Margin="0,0,6,0"/><TextBlock x:Name="QualityChipText" FontSize="11" Foreground="{StaticResource Ink}"/></StackPanel></Border>
-            </WrapPanel>
-          </StackPanel>
-        </Border>
+          </Button>
+          <Button x:Name="RecordButton" Grid.Column="2" Style="{StaticResource LiveRecordButton}" Click="ToggleRecord" AutomationProperties.Name="Start recording">
+            <Grid>
+              <Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+              <Ellipse x:Name="RecordDot" Width="10" Height="10" Fill="{StaticResource Record}" Margin="0,0,9,0" VerticalAlignment="Center"/>
+              <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
+                <TextBlock x:Name="RecordLabel" Text="Record" FontWeight="SemiBold" FontSize="14" VerticalAlignment="Center"/>
+                <TextBlock x:Name="RecordTime" Margin="8,0,0,0" FontSize="13" FontWeight="SemiBold" FontFamily="Consolas" VerticalAlignment="Center" Visibility="Collapsed"/>
+              </StackPanel>
+              <Border Grid.Column="2" Margin="6,0,0,0" VerticalAlignment="Center" CornerRadius="6" BorderBrush="#6E3036" BorderThickness="1" Padding="6,2" Background="#22000000">
+                <TextBlock x:Name="RecordHotkeyText" FontSize="10.5" FontWeight="SemiBold" Foreground="{StaticResource Muted}"/>
+              </Border>
+            </Grid>
+          </Button>
+        </Grid>
 
         <!-- Hotkey conflict -->
-        <Border x:Name="HotkeyWarning" Background="#332D1C" BorderBrush="#7A6630" BorderThickness="1" CornerRadius="10" Padding="12,8" Margin="0,12,0,0" Visibility="Collapsed">
-          <Grid>
-            <Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
-            <TextBlock Text="&#xE7BA;" FontFamily="Segoe MDL2 Assets" Foreground="#F2C57C" FontSize="14" VerticalAlignment="Center" Margin="0,0,10,0"/>
-            <TextBlock x:Name="HotkeyWarningText" Grid.Column="1" Foreground="#F2DDB0" FontSize="11.5" TextWrapping="Wrap" VerticalAlignment="Center"/>
-            <Button Grid.Column="2" Margin="10,0,0,0" VerticalAlignment="Center" Cursor="Hand" Click="OpenSettingsClick" AutomationProperties.Name="Change hotkeys" FocusVisualStyle="{StaticResource FocusVisual}">
-              <Button.Template>
-                <ControlTemplate TargetType="Button">
-                  <TextBlock x:Name="Label" Text="Change hotkeys" Foreground="#F2C57C" FontSize="11.5" FontWeight="SemiBold" Background="Transparent"/>
-                  <ControlTemplate.Triggers>
-                    <Trigger Property="IsMouseOver" Value="True">
-                      <Setter TargetName="Label" Property="TextDecorations" Value="Underline"/>
-                      <Setter TargetName="Label" Property="Foreground" Value="#FFD98F"/>
-                    </Trigger>
-                  </ControlTemplate.Triggers>
-                </ControlTemplate>
-              </Button.Template>
-            </Button>
-          </Grid>
-        </Border>
-
-        <!-- Primary action -->
-        <Button x:Name="ClipButton" Style="{StaticResource HeroClipButton}" Margin="0,12,0,0" Click="SaveClip" AutomationProperties.Name="Save clip">
-          <Button.Effect><DropShadowEffect x:Name="ClipGlow" BlurRadius="22" ShadowDepth="0" Opacity="0" Color="#AC8BFA"/></Button.Effect>
-          <Grid>
-            <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
-            <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
-              <Path Data="M12,3 V13 M7,9 L12,14 L17,9 M5,18 H19" Stroke="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}" StrokeThickness="1.8"
-                    StrokeStartLineCap="Round" StrokeEndLineCap="Round" Width="17" Height="17" Stretch="Uniform" Margin="0,0,9,0"/>
-              <StackPanel VerticalAlignment="Center">
-                <TextBlock Text="Save clip" Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}" FontWeight="Bold" FontSize="16"/>
-                <TextBlock x:Name="ClipHint" Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}" FontSize="10.5" Opacity="0.85" Margin="0,1,0,0" Visibility="Collapsed"/>
-              </StackPanel>
-            </StackPanel>
-            <Border Grid.Column="1" CornerRadius="7" Padding="9,3" Margin="10,0,0,0" VerticalAlignment="Center" Background="#33000000" BorderBrush="#55FFFFFF" BorderThickness="1">
-              <TextBlock x:Name="ClipHotkeyText" FontSize="11.5" FontWeight="SemiBold" Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}"/>
-            </Border>
-          </Grid>
-        </Button>
-
-        <Button x:Name="RecordButton" Style="{StaticResource LiveRecordButton}" Margin="0,12,0,0" Click="ToggleRecord" AutomationProperties.Name="Start recording">
-          <Grid>
-            <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
-            <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
-              <Ellipse x:Name="RecordDot" Width="11" Height="11" Fill="{StaticResource Record}" Margin="0,0,9,0"/>
-              <TextBlock x:Name="RecordLabel" Text="Start recording" FontWeight="SemiBold" FontSize="15" VerticalAlignment="Center"/>
-              <TextBlock x:Name="RecordTime" Margin="10,0,0,0" FontSize="15" FontWeight="SemiBold" FontFamily="Consolas" VerticalAlignment="Center" Visibility="Collapsed"/>
-            </StackPanel>
-            <Border Grid.Column="1" Margin="10,0,0,0" VerticalAlignment="Center" CornerRadius="7" BorderBrush="#6E3036" BorderThickness="1" Padding="9,3" Background="#22000000">
-              <TextBlock x:Name="RecordHotkeyText" FontSize="11.5" Foreground="{StaticResource Muted}"/>
-            </Border>
-          </Grid>
-        </Button>
+        <Grid x:Name="HotkeyWarning" Margin="2,10,2,0" Visibility="Collapsed">
+          <Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+          <TextBlock Text="&#xE7BA;" FontFamily="Segoe MDL2 Assets" Foreground="#F2C57C" FontSize="12.5" VerticalAlignment="Center" Margin="0,0,7,0"/>
+          <TextBlock x:Name="HotkeyWarningText" Grid.Column="1" Foreground="#F2C57C" FontSize="11.5" TextWrapping="Wrap" VerticalAlignment="Center"/>
+          <Button Grid.Column="2" Margin="10,0,0,0" VerticalAlignment="Center" Cursor="Hand" Click="OpenSettingsClick" AutomationProperties.Name="Change hotkeys" FocusVisualStyle="{StaticResource FocusVisual}">
+            <Button.Template>
+              <ControlTemplate TargetType="Button">
+                <TextBlock x:Name="Label" Text="Change hotkeys" Foreground="#F2C57C" FontSize="11.5" FontWeight="SemiBold" Background="Transparent"/>
+                <ControlTemplate.Triggers>
+                  <Trigger Property="IsMouseOver" Value="True">
+                    <Setter TargetName="Label" Property="TextDecorations" Value="Underline"/>
+                    <Setter TargetName="Label" Property="Foreground" Value="#FFD98F"/>
+                  </Trigger>
+                </ControlTemplate.Triggers>
+              </ControlTemplate>
+            </Button.Template>
+          </Button>
+        </Grid>
 
         <!-- Audio -->
-        <Grid Margin="0,18,0,0">
+        <Grid Margin="0,12,0,0">
           <Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
           <CheckBox x:Name="SystemBox" Style="{StaticResource AudioChip}" Tag="&#xE767;" Content="App audio" Margin="0,0,8,0" Checked="SystemToggled" Unchecked="SystemToggled" AutomationProperties.Name="App / system audio"/>
           <CheckBox x:Name="MicBox" Grid.Column="1" Style="{StaticResource AudioChip}" Tag="&#xE720;" Content="Mic" Checked="MicToggled" Unchecked="MicToggled" AutomationProperties.Name="Microphone"/>
-          <ProgressBar x:Name="MicLevel" Grid.Column="2" Width="54" Height="4" Maximum="1" Margin="10,0,0,0" HorizontalAlignment="Left" VerticalAlignment="Center" Foreground="{DynamicResource Accent}" Background="{StaticResource Field}" BorderThickness="0" ToolTip="Microphone level (while replay or recording is active)"/>
+          <ProgressBar x:Name="MicLevel" Grid.Column="2" Width="44" Height="4" Maximum="1" Margin="10,0,0,0" HorizontalAlignment="Left" VerticalAlignment="Center" Foreground="{DynamicResource Accent}" Background="{StaticResource Field}" BorderThickness="0" ToolTip="Microphone level (while replay or recording is active)"/>
           <Button Grid.Column="3" Content="Sources  &gt;" Style="{StaticResource LinkButton}" VerticalAlignment="Center" Click="OpenSettingsClick"/>
         </Grid>
-        <TextBlock x:Name="AudioHint" Text="Game audio and voice chat are included." Style="{StaticResource MutedText}" Margin="2,7,0,0"/>
+        <TextBlock x:Name="AudioHint" Text="Game audio and voice chat are included." Style="{StaticResource MutedText}" Margin="2,6,0,0" Visibility="Collapsed"/>
 
         <!-- Recent clips -->
-        <Grid Margin="0,20,0,10">
+        <Grid Margin="0,16,0,8">
           <TextBlock Text="Recent clips" FontWeight="SemiBold" FontSize="14" VerticalAlignment="Center"/>
-          <Button Content="View all  &gt;" Style="{StaticResource LinkButton}" HorizontalAlignment="Right" Click="ShowAll"/>
+          <Button Content="View all" Style="{StaticResource LinkButton}" HorizontalAlignment="Right" Click="ShowAll"/>
         </Grid>
-        <Border x:Name="EmptyClips" BorderBrush="{StaticResource Line}" BorderThickness="1" CornerRadius="12" Padding="16,22" Background="#1AFFFFFF">
+        <Border x:Name="EmptyClips" BorderBrush="{StaticResource Line}" BorderThickness="1" CornerRadius="12" Padding="16,16" Background="#1AFFFFFF">
           <StackPanel HorizontalAlignment="Center">
-            <TextBlock Text="&#xE714;" FontFamily="Segoe MDL2 Assets" FontSize="24" Foreground="{StaticResource Muted}" HorizontalAlignment="Center"/>
-            <TextBlock Text="No clips yet" FontWeight="SemiBold" HorizontalAlignment="Center" Margin="0,8,0,0"/>
+            <TextBlock Text="&#xE714;" FontFamily="Segoe MDL2 Assets" FontSize="22" Foreground="{StaticResource Muted}" HorizontalAlignment="Center"/>
+            <TextBlock Text="No clips yet" FontWeight="SemiBold" HorizontalAlignment="Center" Margin="0,6,0,0"/>
             <TextBlock Text="Turn on replay and press Save clip to keep a moment." Style="{StaticResource MutedText}" HorizontalAlignment="Center" TextAlignment="Center" TextWrapping="Wrap" Margin="0,3,0,0"/>
           </StackPanel>
         </Border>
-        <ItemsControl x:Name="RecentList">
-          <ItemsControl.ItemsPanel><ItemsPanelTemplate><UniformGrid Columns="3"/></ItemsPanelTemplate></ItemsControl.ItemsPanel>
+        <ItemsControl x:Name="RecentList" Margin="0,0,-8,0">
+          <ItemsControl.ItemsPanel><ItemsPanelTemplate><UniformGrid Columns="4"/></ItemsPanelTemplate></ItemsControl.ItemsPanel>
           <ItemsControl.ItemTemplate>
             <DataTemplate>
-              <Button Click="PlayRecent" Cursor="Hand" Margin="0,0,8,8" ToolTip="Open in default player" AutomationProperties.Name="{Binding Name}" FocusVisualStyle="{StaticResource FocusVisual}">
+              <Button Click="PlayRecent" Cursor="Hand" Margin="0,0,8,8" ToolTip="{Binding Name}" AutomationProperties.Name="{Binding Name}" FocusVisualStyle="{StaticResource FocusVisual}">
                 <Button.Template>
                   <ControlTemplate TargetType="Button">
-                    <Border x:Name="Bd" Background="{StaticResource Card}" BorderBrush="{StaticResource Line}" BorderThickness="1" CornerRadius="10" Padding="5">
+                    <Border x:Name="Bd" Background="{StaticResource Field}" BorderBrush="{StaticResource Line}" BorderThickness="1" CornerRadius="9">
                       <ContentPresenter/>
                     </Border>
                     <ControlTemplate.Triggers>
@@ -221,19 +233,15 @@
                     </ControlTemplate.Triggers>
                   </ControlTemplate>
                 </Button.Template>
-                <StackPanel>
-                  <Viewbox Stretch="Uniform">
-                    <Grid Width="160" Height="90">
-                      <Border CornerRadius="7" Background="{StaticResource Field}" ClipToBounds="True">
-                        <Image Source="{Binding Thumbnail}" Stretch="UniformToFill"/>
-                      </Border>
-                      <Border CornerRadius="5" Background="#CC111418" Padding="5,1" Margin="6" HorizontalAlignment="Right" VerticalAlignment="Bottom">
-                        <TextBlock Text="{Binding DurationText}" FontSize="10" FontWeight="SemiBold" Foreground="{StaticResource Ink}"/>
-                      </Border>
-                    </Grid>
-                  </Viewbox>
-                  <TextBlock Text="{Binding Name}" FontSize="11.5" FontWeight="SemiBold" Margin="2,6,2,1" TextTrimming="CharacterEllipsis" TextWrapping="NoWrap"/>
-                </StackPanel>
+                <Viewbox Stretch="Uniform">
+                  <Grid Width="160" Height="90">
+                    <Grid.Clip><RectangleGeometry Rect="0,0,160,90" RadiusX="14" RadiusY="14"/></Grid.Clip>
+                    <Image Source="{Binding Thumbnail}" Stretch="UniformToFill"/>
+                    <Border CornerRadius="5" Background="#CC111418" Padding="6,1" Margin="7" HorizontalAlignment="Right" VerticalAlignment="Bottom">
+                      <TextBlock Text="{Binding DurationText}" FontSize="13" FontWeight="SemiBold" Foreground="{StaticResource Ink}"/>
+                    </Border>
+                  </Grid>
+                </Viewbox>
               </Button>
             </DataTemplate>
           </ItemsControl.ItemTemplate>

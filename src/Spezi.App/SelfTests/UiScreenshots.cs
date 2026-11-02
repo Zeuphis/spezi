@@ -41,6 +41,10 @@ static partial class SelfTest
             window = new MainWindow(controller); window.Show();
             Click("CaptureNav");
             Capture("recording-normal.png");
+            var capturePage = (CapturePage)((ContentControl)window.FindName("Body")).Content;
+            capturePage.PreviewReplayOn();
+            Capture("recording-on.png");
+            capturePage.PreviewReplayOn(false);
             window.WindowState = WindowState.Maximized;
             Capture("recording-maximized.png");
             Click("SettingsNav");
