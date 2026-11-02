@@ -2,6 +2,15 @@
 
 All notable changes to Spezi. The version is defined once in `Directory.Build.props`.
 
+## 1.3.0
+
+- New Recording page design: the upper half is one big replay power card. Click anywhere on it to turn replay on or off. It shows the state, how much is ready to save, buffer and quality chips, and glows in your accent color while replay is on.
+- Save clip and Record sit side by side with hotkey badges. Save clip is disabled with "Turn on replay first" while replay is off; Record turns red with a live timer while recording.
+- Recent clips are shown as a grid of up to 8 thumbnails (two rows) with duration badges, plus an empty state.
+- Settings: sections are collapsible cards that start collapsed; the "Changes are saved automatically" note is now a subtle line under the title.
+- The main window is moved back on screen if it was shown or restored partly off-screen.
+- Removed the Test audio button from the audio settings; level meters stay.
+
 ## 1.2.0
 
 - Recording page redesign: replay status card with a pulse while active and chips for buffer length and quality; a stronger Save clip button with a clear hotkey badge and an in-button hint when replay is off; a red Start recording button with a live timer; a yellow warning row with a Change hotkeys link when both hotkeys are the same; compact audio chips with a microphone level meter; recent clips as larger tiles with duration badges and an empty state.
