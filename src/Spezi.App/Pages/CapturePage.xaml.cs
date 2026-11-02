@@ -132,8 +132,8 @@ public partial class CapturePage : System.Windows.Controls.UserControl
         ClipButton.IsEnabled = hasBuffer;
         ClipHint.Visibility = hasBuffer ? Visibility.Collapsed : Visibility.Visible;
         ClipHint.Text = snapshot.ReplayActive
-            ? "The buffer is still empty. You can save a clip once frames are available."
-            : "Enable replay to start buffering clips.";
+            ? "Buffer is filling up"
+            : "Turn on replay first";
 
         ClipGlow.Color = ((SolidColorBrush)FindResource("Accent")).Color;
         ClipGlow.Opacity = hasBuffer ? 0.55 : 0;
