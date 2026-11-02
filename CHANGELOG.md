@@ -2,6 +2,11 @@
 
 All notable changes to Spezi. The version is defined once in `Directory.Build.props`.
 
+## 1.3.1
+
+- Calmer replay card: while replay is on it simply shows "Last <length> ready to save", without a ticking buffer counter or filling indicator.
+- Sharper text on the Save clip and Record buttons and their hotkey badges: the glow no longer blurs the content, and text uses display rendering with pixel snapping.
+
 ## 1.3.0
 
 - New Recording page design: the upper half is one big replay power card. Click anywhere on it to turn replay on or off. It shows the state, how much is ready to save, buffer and quality chips, and glows in your accent color while replay is on.
