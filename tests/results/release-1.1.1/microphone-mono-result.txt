@@ -1,4 +1,0 @@
-PASS Left-only, right-only and two-channel microphones are centered: PCM8/16/24/32 and float at 44.1/48/96kHz
-PASS Mono, multichannel and WASAPI extensible microphones; game and system audio retain separate stereo channels
-PASS AAC/MP4 round trip: 48128 decoded frames; left RMS=0,1053, right RMS=0,1053
-MICROPHONE_MONO_TEST_OK

@@ -1,6 +1,0 @@
-PASS source-only update deployed; no app EXE or installer was built.
-PASS 20 replay values, snapping, current accent, narrow layout, English first launch and Settings-only configuration.
-PASS settings, library, replay buffer and legacy recovery checks.
-PASS portable Spezi.exe, Spezi.dll and installer hashes are unchanged.
-Backup: C:\Users\Venom\spezi\.backups\english-ui-20261009-093854
-Changed 37 files; removed 2 first-run wizard files.

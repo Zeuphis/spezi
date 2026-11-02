@@ -31,3 +31,6 @@ updater/*.exe
 *.key
 *.snk
 secrets.json
+
+# Ausgaben der Regressionstests (lokal)
+tests/results/

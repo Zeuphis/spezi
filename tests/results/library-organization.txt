@@ -1,1 +1,0 @@
-PASS game directories, reserved names, safe destinations, recursive gallery files, hidden partials, lossless legacy sorting, collisions, settings defaults and validation

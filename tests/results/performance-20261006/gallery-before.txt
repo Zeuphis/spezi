@@ -1,2 +1,0 @@
-clips=24 initialReadyMs=782 loadedThumbnails=24 privateMemoryDeltaMB=281,4 workingSetMB=368,1 managedAllocatedMB=387,0 cpuMs=7750
-GALLERY_PERFORMANCE_OK

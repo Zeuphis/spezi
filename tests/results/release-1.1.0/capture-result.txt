@@ -1,8 +1,0 @@
-encoder=NVIDIA H.264 Encoder MFT
-encodedFps=30.0 dropped=0 replay=00:00:06.9268294
-cpuPercent=0.5 workingSetMB=145
-gpuBefore=1, 0, 871
-gpuDuring=2, 2, 929
-clip video=True audio=True duration=00:00:06.8933000 bytes=1600417
-session video=True audio=True duration=00:00:03.9330333 bytes=878432
-SELFTEST_OK

@@ -1,3 +1,0 @@
-PASS PCM8/16/24/32 mono, float stereo 44.1/48/96kHz, resampling continuity and captured buffer ownership
-PASS retained GPU frames remain independent; 1080p/720p/360p conversion and software readback resizing
-CONVERSION_TESTS_OK
