@@ -2,6 +2,10 @@
 
 All notable changes to Spezi. The version is defined once in `Directory.Build.props`.
 
+## 1.3.2
+
+- Fixed context menus (e.g. the clip ... menu in the Gallery): they are now fully dark with rounded corners, no white bar on the left, accent hover and a red Delete item.
+
 ## 1.3.1
 
 - Calmer replay card: while replay is on it simply shows "Last <length> ready to save", without a ticking buffer counter or filling indicator.
