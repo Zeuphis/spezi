@@ -10,6 +10,7 @@ public partial class SettingsPage : System.Windows.Controls.UserControl
 {
     readonly AppController _controller;
     readonly DispatcherTimer _levels;
+    readonly Spezi.Core.ViewModels.NotificationSettingsViewModel _notifications;
     bool _loading = true;
     internal event Action<bool>? HotkeyEditingChanged;
     internal bool IsHotkeyEditing => ReplayHotkey.IsKeyboardFocusWithin || RecordHotkey.IsKeyboardFocusWithin;
@@ -19,6 +20,8 @@ public partial class SettingsPage : System.Windows.Controls.UserControl
         InitializeComponent();
         _controller = controller;
         VersionText.Text = "Spezi v" + AppVersionText();
+        _notifications = new(() => _controller.Settings, _controller.Save);
+        ToastBox.DataContext = ToastDurationText.DataContext = ToastDurationSlider.DataContext = UpdateCheckBox.DataContext = _notifications;
         Unloaded += (_, _) => HotkeyEditingChanged?.Invoke(false);
         FpsBox.ItemsSource = new[] { "30", "60", "120" };
         _levels = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(100) };
@@ -76,9 +79,7 @@ public partial class SettingsPage : System.Windows.Controls.UserControl
         HotkeyError.Text = _controller.HotkeyErrorText;
         StartupBox.IsChecked = settings.StartWithWindows;
         AutoBox.IsChecked = settings.AutoReplayWhenPlaying;
-        ToastBox.IsChecked = settings.StatusToasts;
-        ToastDurationSlider.Value = settings.ToastDurationSeconds;
-        ToastDurationText.Text = $"{settings.ToastDurationSeconds:0.#} seconds";
+        _notifications.Load();
         PaintAccentChoice();
         var hardware = _controller.Encoders();
         EncoderText.Text = hardware.Count == 0
@@ -444,22 +445,6 @@ public partial class SettingsPage : System.Windows.Controls.UserControl
             return;
         _controller.Settings.AutoReplayWhenPlaying = AutoBox.IsChecked == true;
         _controller.Save();
-    }
-
-    void ToastChanged(object sender, RoutedEventArgs e)
-    {
-        if (_loading)
-            return;
-        _controller.Settings.StatusToasts = ToastBox.IsChecked == true;
-        _controller.Save();
-    }
-
-    void ToastDurationChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
-    {
-        if (_loading) return;
-        _controller.Settings.ToastDurationSeconds = ToastDurationSlider.Value;
-        _controller.Save();
-        ToastDurationText.Text = $"{_controller.Settings.ToastDurationSeconds:0.#} seconds";
     }
 
     void ChooseAccent(object sender, RoutedEventArgs e)

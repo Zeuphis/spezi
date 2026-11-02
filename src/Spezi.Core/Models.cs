@@ -67,6 +67,7 @@ public sealed class AppSettings
     public bool StartWithWindows { get; set; }
     public bool AutoReplayWhenPlaying { get; set; }
     public bool StatusToasts { get; set; } = true;
+    public bool CheckForUpdatesOnStartup { get; set; } = true;
     public double ToastDurationSeconds { get; set; } = 3.5;
     public const string DefaultAccentColor = "#5CDBA6";
     public string AccentColor { get; set; } = DefaultAccentColor;
