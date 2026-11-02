@@ -1,0 +1,56 @@
+﻿name: Release
+on:
+  push:
+    tags: ['v*']
+permissions:
+  contents: write
+jobs:
+  release:
+    runs-on: windows-latest
+    env:
+      SIGNING_CERT_BASE64: ${{ secrets.SIGNING_CERT_BASE64 }}
+      SIGNING_CERT_PASSWORD: ${{ secrets.SIGNING_CERT_PASSWORD }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 9.0.x
+      - name: Build and unit tests
+        run: |
+          dotnet build Spezi.sln -c Release
+          dotnet test tests/Spezi.Tests -c Release --no-build
+      - name: Check tag matches Directory.Build.props
+        shell: pwsh
+        run: |
+          $version = ([xml](Get-Content Directory.Build.props)).Project.PropertyGroup.Version
+          if ("v$version" -ne "${{ github.ref_name }}") { throw "Tag ${{ github.ref_name }} does not match version $version" }
+      - name: Install Inno Setup
+        shell: pwsh
+        run: |
+          Invoke-WebRequest https://jrsoftware.org/download.php/is.exe -OutFile $env:RUNNER_TEMP\is.exe
+          Start-Process $env:RUNNER_TEMP\is.exe -ArgumentList '/VERYSILENT','/SUPPRESSMSGBOXES','/NORESTART','/SP-' -Wait
+          $iscc = Get-ChildItem "${env:ProgramFiles(x86)}\Inno Setup*\ISCC.exe","$env:ProgramFiles\Inno Setup*\ISCC.exe" -ErrorAction SilentlyContinue | Select-Object -First 1
+          if (!$iscc) { throw 'ISCC.exe not found' }
+          "ISCC=$($iscc.FullName)" >> $env:GITHUB_ENV
+      - name: Optional code signing (only if SIGNING_CERT_BASE64 secret exists)
+        if: env.SIGNING_CERT_BASE64 != ''
+        shell: pwsh
+        run: |
+          $pfx = Join-Path $env:RUNNER_TEMP 'spezi-sign.pfx'
+          [IO.File]::WriteAllBytes($pfx, [Convert]::FromBase64String($env:SIGNING_CERT_BASE64))
+          $signtool = Get-ChildItem "${env:ProgramFiles(x86)}\Windows Kits\10\bin\*\x64\signtool.exe" | Sort-Object FullName | Select-Object -Last 1
+          "SPEZI_SIGNTOOL=`"$($signtool.FullName)`" sign /fd sha256 /tr http://timestamp.digicert.com /td sha256 /f `"$pfx`" /p `"$env:SIGNING_CERT_PASSWORD`" `$f" >> $env:GITHUB_ENV
+      - name: Build installer and updater
+        shell: pwsh
+        run: |
+          ./installer/Build-Installer.ps1 -CompilerPath $env:ISCC
+          ./updater/Build-Updater.ps1 -CompilerPath $env:ISCC
+          ./tools/Verify-Checksums.ps1
+      - name: Publish GitHub release
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "${{ github.ref_name }}" --title "Spezi ${{ github.ref_name }}" --notes "See CHANGELOG.md" `
+            installer/Spezi-Setup.exe installer/Spezi-Setup.exe.sha256 `
+            updater/Spezi-Updater.exe updater/Spezi-Updater.exe.sha256
