@@ -1,10 +1,16 @@
-﻿# Changelog
+# Changelog
 
 All notable changes to Spezi. The version is defined once in `Directory.Build.props`.
 
-## Unreleased
+## 1.1.2
 
-- Internal: UI threading and error handling hardening, xUnit tests, GitHub Actions CI and release workflow, optional code signing, automatic SHA-256 verification.
+- Settings: the Audio & microphone section is reorganized into two groups, App & system audio and Microphone, each with its own switch. Every source is one compact row with checkbox, name, volume slider and level meter; the long explanation moved into an info tooltip.
+- Settings: a new custom color picker in Spezi's style replaces the Windows color dialog: color wheel, hue/saturation/brightness sliders, a validated #RRGGBB field and a before/after preview.
+- Settings: the replay slider shows the estimated maximum RAM use; a missing hardware encoder is clearly highlighted.
+- Settings: the app version and a GitHub link are shown at the bottom.
+- Maximized windows keep Recording, the tabs and the footer centered at a readable width instead of stretching across the screen.
+- Fixed the hotkey conflict hint being shown twice.
+- Internal: UI threading and error handling hardening, asynchronous gallery scanning, xUnit tests, GitHub Actions CI and tag-based release workflow (installer and updater attached to the GitHub Release), optional code signing, automatic SHA-256 verification, central version in `Directory.Build.props`.
 
 ## 1.1.1
 
