@@ -20,6 +20,8 @@ public sealed class AppController : IDisposable
     public CaptureSelection Capture { get; private set; } = new() { Kind = CaptureKind.Monitor, MonitorDeviceName = "primary" };
     public string ReplayHotkeyError { get; private set; } = "";
     public string RecordHotkeyError { get; private set; } = "";
+    // Both fields carry the same text on a conflict; show it once.
+    public string HotkeyErrorText => string.Join(" ", new[] { ReplayHotkeyError, RecordHotkeyError }.Where(s => !string.IsNullOrWhiteSpace(s)).Distinct());
     public event Action<RecorderNotice>? Notice;
     public event Action? StateChanged;
     public event Action? LibraryChanged;
@@ -138,7 +140,7 @@ public sealed class AppController : IDisposable
         if (register && !host.TryRegister(2, Settings.RecordHotkey, out var recordError))
             RecordHotkeyError = recordError;
 
-        var combined = string.Join(" ", new[] { ReplayHotkeyError, RecordHotkeyError }.Where(s => !string.IsNullOrWhiteSpace(s)));
+        var combined = HotkeyErrorText;
         if (!string.IsNullOrWhiteSpace(combined) && combined != _lastHotkeyError)
             Notice?.Invoke(new RecorderNotice { Kind = NoticeKind.Error, Message = combined });
         _lastHotkeyError = combined;

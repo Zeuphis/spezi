@@ -110,7 +110,7 @@ public partial class CapturePage : System.Windows.Controls.UserControl
             ? "The buffer is still empty. You can save a clip once frames are available."
             : "Enable replay to start buffering clips.";
 
-        var hotkeyError = string.Join(" ", new[] { _controller.ReplayHotkeyError, _controller.RecordHotkeyError }.Where(text => text.Length > 0));
+        var hotkeyError = _controller.HotkeyErrorText;
         if (hotkeyError.Length > 0)
         {
             ClipHint.Visibility = Visibility.Visible;
