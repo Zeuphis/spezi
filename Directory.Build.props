@@ -1,7 +1,9 @@
-﻿<Project>
+<Project>
   <!-- Single source of the Spezi version: app, installer and updater read it
        (installer/updater scripts take it from the published Spezi.exe). -->
   <PropertyGroup>
     <Version>1.1.1</Version>
+    <!-- Keep ProductVersion plain (no +commit hash); the installer scripts validate it. -->
+    <IncludeSourceRevisionInInformationalVersion>false</IncludeSourceRevisionInInformationalVersion>
   </PropertyGroup>
 </Project>
