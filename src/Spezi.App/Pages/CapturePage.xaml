@@ -134,9 +134,7 @@
                 </Grid>
                 <TextBlock x:Name="StatusText" Text="Replay off" FontSize="24" FontWeight="Bold" HorizontalAlignment="Center" Margin="0,16,0,0"/>
                 <TextBlock x:Name="StatusSub" Text="Press to keep your last moments" Foreground="{StaticResource Muted}" FontSize="12.5" Margin="0,6,0,0" TextWrapping="Wrap" TextAlignment="Center" HorizontalAlignment="Center"/>
-                <ProgressBar x:Name="BufferProgress" Width="120" Height="3" Maximum="1" Margin="0,10,0,0" HorizontalAlignment="Center" Visibility="Hidden"
-                             Foreground="{DynamicResource Accent}" Background="#33FFFFFF" BorderThickness="0" IsHitTestVisible="False"/>
-                <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,8,0,0">
+                <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,12,0,0">
                   <Border Style="{StaticResource Chip}"><TextBlock x:Name="BufferChipText" FontSize="11" FontWeight="SemiBold" Foreground="{StaticResource Ink}"/></Border>
                   <Border Style="{StaticResource Chip}" Margin="0"><TextBlock x:Name="QualityChipText" FontSize="11" FontWeight="SemiBold" Foreground="{StaticResource Ink}"/></Border>
                 </StackPanel>

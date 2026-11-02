@@ -68,7 +68,6 @@ public partial class CapturePage : System.Windows.Controls.UserControl
     {
         var settings = _controller.Settings;
         var on = ReplayOn(snapshot);
-        var buffered = Buffered(snapshot);
         var full = TimeSpan.FromSeconds(settings.ReplaySeconds);
         StatusText.Text = on ? "Replay on" : "Replay off";
         var accent = (System.Windows.Media.Brush)FindResource("Accent");
@@ -78,12 +77,9 @@ public partial class CapturePage : System.Windows.Controls.UserControl
         HeroCard.BorderBrush = on ? accent : (System.Windows.Media.Brush)FindResource("Line");
         HeroGlow.Color = ((SolidColorBrush)accent).Color;
         HeroGlow.Opacity = on ? 0.45 : 0;
-        // Static text (switches once when the buffer is full); fill progress is shown silently by a thin line.
-        var filled = buffered >= full - TimeSpan.FromSeconds(1);
-        var subtitle = on ? filled ? $"Last {Clock(full)} ready to save" : "Filling buffer\u2026" : "Press to keep your last moments";
+        // Static text only: no buffer-fill indication.
+        var subtitle = on ? $"Last {Clock(full)} ready to save" : "Press to keep your last moments";
         if (StatusSub.Text != subtitle) StatusSub.Text = subtitle;
-        BufferProgress.Visibility = on && !filled ? Visibility.Visible : Visibility.Hidden;
-        if (on && !filled) BufferProgress.Value = full.TotalSeconds <= 0 ? 0 : Math.Clamp(buffered.TotalSeconds / full.TotalSeconds, 0, 1);
         BufferChipText.Text = Clock(full) + " buffer";
         QualityChipText.Text = $"{settings.Height}p \u00B7 {settings.FrameRate} FPS";
         SetPulse(on);
