@@ -41,6 +41,7 @@ public partial class CapturePage : System.Windows.Controls.UserControl
             else
             {
                 _timer.Stop();
+                SetPulse(false);
                 _details?.Cancel();
             }
         };
@@ -51,27 +52,64 @@ public partial class CapturePage : System.Windows.Controls.UserControl
     void RefreshClock()
     {
         var snapshot = _controller.Snapshot();
-        StatusText.Text = snapshot.ReplayActive ? "Replay on" : "Replay off";
-        StatusMark.Fill = (System.Windows.Media.Brush)FindResource(snapshot.ReplayActive ? "Accent" : "Muted");
         _filling = true;
         ReplayToggle.IsChecked = snapshot.ReplayActive;
         _filling = false;
-        RecordLabel.Text = snapshot.SessionActive ? "Stop recording" : "Start recording";
-        if (snapshot.SessionActive)
-        {
-            RecordTime.Visibility = Visibility.Visible;
-            RecordTime.Text = snapshot.SessionElapsed.TotalHours >= 1
-                ? snapshot.SessionElapsed.ToString(@"h\:mm\:ss")
-                : snapshot.SessionElapsed.ToString(@"mm\:ss");
-        }
-        else
-        {
-            RecordTime.Visibility = Visibility.Collapsed;
-        }
+        ApplyLive(snapshot);
         var hasBuffer = snapshot.ReplayActive && snapshot.ReplayBuffered >= TimeSpan.FromSeconds(1);
         if (ClipButton.IsEnabled != hasBuffer && string.IsNullOrWhiteSpace(_controller.ReplayHotkeyError))
             RefreshStatus();
     }
+
+    System.Windows.Media.Animation.Storyboard? _pulse;
+
+    // Status parts that change while the page is visible: replay state, buffer, timer, mic level.
+    void ApplyLive(RecorderSnapshot snapshot)
+    {
+        var settings = _controller.Settings;
+        StatusText.Text = snapshot.ReplayActive ? "Replay on" : "Replay off";
+        StatusMark.Fill = (System.Windows.Media.Brush)FindResource(snapshot.ReplayActive ? "Accent" : "Muted");
+        StatusSub.Text = snapshot.ReplayActive
+            ? $"Buffered {Clock(snapshot.ReplayBuffered)} of {Clock(TimeSpan.FromSeconds(settings.ReplaySeconds))}. Save the moment any time."
+            : "Turn on to keep your last moments ready to save.";
+        BufferChipText.Text = Clock(TimeSpan.FromSeconds(settings.ReplaySeconds)) + " buffer";
+        QualityChipText.Text = $"{settings.Height}p \u00B7 {settings.FrameRate} FPS";
+        SetPulse(snapshot.ReplayActive);
+
+        RecordLabel.Text = snapshot.SessionActive ? "Stop recording" : "Start recording";
+        RecordTime.Visibility = snapshot.SessionActive ? Visibility.Visible : Visibility.Collapsed;
+        if (snapshot.SessionActive) RecordTime.Text = Clock(snapshot.SessionElapsed);
+        RecordButton.Background = snapshot.SessionActive ? (System.Windows.Media.Brush)FindResource("Record") : new SolidColorBrush(System.Windows.Media.Color.FromRgb(0x2A, 0x1F, 0x23));
+        RecordDot.Fill = snapshot.SessionActive ? System.Windows.Media.Brushes.White : (System.Windows.Media.Brush)FindResource("Record");
+
+        var mic = snapshot.Levels.Where(level => level.IsMicrophone).Select(level => (double)level.Peak).DefaultIfEmpty(0).Max();
+        MicLevel.Value = Math.Min(1, mic);
+        MicLevel.Visibility = settings.RecordMicrophone ? Visibility.Visible : Visibility.Hidden;
+    }
+
+    void SetPulse(bool on)
+    {
+        if (on == (_pulse != null)) return;
+        if (!on) { _pulse!.Stop(); _pulse = null; StatusPulse.Opacity = 0; return; }
+        var ease = new System.Windows.Media.Animation.QuadraticEase { EasingMode = System.Windows.Media.Animation.EasingMode.EaseOut };
+        var duration = TimeSpan.FromSeconds(1.6);
+        _pulse = new System.Windows.Media.Animation.Storyboard { RepeatBehavior = System.Windows.Media.Animation.RepeatBehavior.Forever };
+        void Add(DependencyObject target, string property, double from, double to)
+        {
+            var animation = new System.Windows.Media.Animation.DoubleAnimation(from, to, duration) { EasingFunction = ease };
+            System.Windows.Media.Animation.Storyboard.SetTarget(animation, target);
+            System.Windows.Media.Animation.Storyboard.SetTargetProperty(animation, new PropertyPath(property));
+            _pulse.Children.Add(animation);
+        }
+        Add(StatusPulse, "Opacity", 0.55, 0);
+        Add(StatusPulse, "(UIElement.RenderTransform).(ScaleTransform.ScaleX)", 0.45, 1);
+        Add(StatusPulse, "(UIElement.RenderTransform).(ScaleTransform.ScaleY)", 0.45, 1);
+        // Low frame rate: a status pulse does not need 60 FPS.
+        System.Windows.Media.Animation.Timeline.SetDesiredFrameRate(_pulse, 24);
+        _pulse.Begin(this, true);
+    }
+
+    static string Clock(TimeSpan value) => value.TotalHours >= 1 ? value.ToString(@"h\:mm\:ss") : value.ToString(@"m\:ss");
 
     public void RefreshStatus()
     {
@@ -85,23 +123,10 @@ public partial class CapturePage : System.Windows.Controls.UserControl
         MicBox.IsChecked = settings.RecordMicrophone && mic != null;
         _filling = false;
 
-        StatusText.Text = snapshot.ReplayActive ? "Replay on" : "Replay off";
-        StatusMark.Fill = (System.Windows.Media.Brush)FindResource(snapshot.ReplayActive ? "Accent" : "Muted");
         ClipHotkeyText.Text = HotkeyText.Format(settings.ReplayHotkey);
         RecordHotkeyText.Text = HotkeyText.Format(settings.RecordHotkey);
-        RecordLabel.Text = snapshot.SessionActive ? "Stop recording" : "Start recording";
+        ApplyLive(snapshot);
         RecordButton.SetValue(System.Windows.Automation.AutomationProperties.NameProperty, RecordLabel.Text);
-        if (snapshot.SessionActive)
-        {
-            RecordTime.Visibility = Visibility.Visible;
-            RecordTime.Text = snapshot.SessionElapsed.TotalHours >= 1
-                ? snapshot.SessionElapsed.ToString(@"h\:mm\:ss")
-                : snapshot.SessionElapsed.ToString(@"mm\:ss");
-        }
-        else
-        {
-            RecordTime.Visibility = Visibility.Collapsed;
-        }
 
         var hasBuffer = snapshot.ReplayActive && snapshot.ReplayBuffered >= TimeSpan.FromSeconds(1);
         ClipButton.IsEnabled = hasBuffer;
@@ -110,12 +135,11 @@ public partial class CapturePage : System.Windows.Controls.UserControl
             ? "The buffer is still empty. You can save a clip once frames are available."
             : "Enable replay to start buffering clips.";
 
+        ClipGlow.Color = ((SolidColorBrush)FindResource("Accent")).Color;
+        ClipGlow.Opacity = hasBuffer ? 0.55 : 0;
         var hotkeyError = _controller.HotkeyErrorText;
-        if (hotkeyError.Length > 0)
-        {
-            ClipHint.Visibility = Visibility.Visible;
-            ClipHint.Text = hotkeyError;
-        }
+        HotkeyWarning.Visibility = hotkeyError.Length > 0 ? Visibility.Visible : Visibility.Collapsed;
+        HotkeyWarningText.Text = hotkeyError;
 
         AudioHint.Text = settings.CaptureSystemAudio != false
             ? settings.AudioMode == AudioCaptureMode.System ? "All system audio is included."
