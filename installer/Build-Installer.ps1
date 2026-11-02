@@ -1,6 +1,7 @@
 param(
     [string]$CompilerPath,
-    [switch]$SkipPublish
+    [switch]$SkipPublish,
+    [string]$SignToolCommand = $env:SPEZI_SIGNTOOL
 )
 
 $ErrorActionPreference = 'Stop'
@@ -36,9 +37,13 @@ $exe = Join-Path $payload 'Spezi.exe'
 if (!(Test-Path -LiteralPath $exe) -or !(Test-Path -LiteralPath (Join-Path $payload 'coreclr.dll'))) { throw 'The complete Spezi build is missing from dist.' }
 $version = (Get-Item -LiteralPath $exe).VersionInfo.ProductVersion
 if ($version -notmatch '^\d+\.\d+\.\d+(\.\d+)?$') { throw "Unexpected Spezi version: $version" }
-& $CompilerPath /Q ('/DProjectRoot=' + $projectRoot) ('/DAppVersion=' + $version) ('/O' + $PSScriptRoot) (Join-Path $PSScriptRoot 'Spezi.iss')
+$signArgs = @()
+if ($SignToolCommand) { $signArgs = @('/DSignToolName=spezisign', ('/Sspezisign=' + $SignToolCommand)) }
+& $CompilerPath /Q @signArgs ('/DProjectRoot=' + $projectRoot) ('/DAppVersion=' + $version) ('/O' + $PSScriptRoot) (Join-Path $PSScriptRoot 'Spezi.iss')
 if ($LASTEXITCODE -ne 0) { throw 'The installer could not be built.' }
 $setup = Join-Path $PSScriptRoot 'Spezi-Setup.exe'
 $checksum = Get-FileHash -LiteralPath $setup -Algorithm SHA256
 ($checksum.Hash.ToLowerInvariant() + '  Spezi-Setup.exe') | Set-Content -LiteralPath (Join-Path $PSScriptRoot 'Spezi-Setup.exe.sha256') -Encoding ascii
+& (Join-Path $projectRoot 'tools\Verify-Checksums.ps1') -Files $setup
+if ($LASTEXITCODE -ne 0) { throw 'Checksum verification failed.' }
 Get-Item -LiteralPath $setup | Select-Object FullName, Length, LastWriteTime

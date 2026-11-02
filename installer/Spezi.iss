@@ -22,6 +22,11 @@
 AppId={{#AppId}
 AppName={#AppName}
 AppVersion={#AppVersion}
+#ifdef SignToolName
+; Optional code signing: Build-Installer.ps1 defines SignToolName when SPEZI_SIGNTOOL is set.
+SignTool={#SignToolName}
+SignedUninstaller=yes
+#endif
 AppPublisher=Spezi
 AppComments=Gameplay clips and full recordings with game audio and voice chat.
 #ifdef UpdateOnly
