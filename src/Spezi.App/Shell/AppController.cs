@@ -70,11 +70,45 @@ public sealed class AppController : IDisposable
     {
         if (_encoderCache == null || Environment.TickCount64 >= _encoderRefreshAt)
         {
-            _encoderCache = _recorder.DetectEncoders();
-            _encoderRefreshAt = Environment.TickCount64 + 30_000;
+            // Probing hardware encoders loads GPU driver DLLs that keep ~25 threads and ~50 MB alive
+            // for the rest of the process. Probe in a short-lived child process while idle instead.
+            _encoderCache = DetectEncodersOutOfProcess() ?? _recorder.DetectEncoders();
+            _encoderRefreshAt = Environment.TickCount64 + 5 * 60_000;
         }
         return _encoderCache;
     }
+
+    internal const string DetectEncodersArgument = "--detect-encoders";
+
+    internal static IReadOnlyList<EncoderDescription>? DetectEncodersOutOfProcess()
+    {
+        try
+        {
+            var exe = Environment.ProcessPath;
+            if (exe == null || !Path.GetFileName(exe).Equals("Spezi.exe", StringComparison.OrdinalIgnoreCase)) return null;
+            using var process = Process.Start(new ProcessStartInfo(exe, DetectEncodersArgument)
+            {
+                UseShellExecute = false, CreateNoWindow = true, RedirectStandardOutput = true
+            });
+            if (process == null) return null;
+            var output = process.StandardOutput.ReadToEndAsync();
+            if (!process.WaitForExit(10_000)) { try { process.Kill(); } catch (InvalidOperationException) { } return null; }
+            if (process.ExitCode != 0) return null;
+            return ParseEncoderLines(output.Result);
+        }
+        catch (Exception ex) when (ex is System.ComponentModel.Win32Exception or InvalidOperationException or IOException)
+        {
+            AppLog.Error("Out-of-process encoder detection failed.", ex);
+            return null;
+        }
+    }
+
+    internal static string FormatEncoderLines(IEnumerable<EncoderDescription> encoders) =>
+        string.Concat(encoders.Select(e => $"ENC\t{e.IsHardware}\t{e.VendorId}\t{e.Vendor.Replace('\t', ' ')}\t{e.Name.Replace('\t', ' ')}\n"));
+
+    internal static IReadOnlyList<EncoderDescription> ParseEncoderLines(string text) =>
+        text.Split('\n').Select(line => line.TrimEnd('\r').Split('\t')).Where(p => p.Length == 5 && p[0] == "ENC")
+            .Select(p => new EncoderDescription { IsHardware = bool.Parse(p[1]), VendorId = uint.Parse(p[2]), Vendor = p[3], Name = p[4] }).ToList();
 
     public bool SoftwareAvailable() => _recorder.SoftwareEncoderAvailable();
 

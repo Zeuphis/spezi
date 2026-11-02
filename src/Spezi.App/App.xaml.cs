@@ -1,4 +1,4 @@
-using System.Globalization;
+﻿using System.Globalization;
 using System.Threading;
 using System.Windows.Markup;
 using System.Windows;
@@ -105,6 +105,20 @@ public partial class App : System.Windows.Application
         }
 
 #endif
+        if (e.Args.Length == 1 && e.Args[0] == AppController.DetectEncodersArgument)
+        {
+            // Child process of AppController.Encoders(): print and exit, no window, no mutex.
+            try
+            {
+                using var recorder = new Spezi.Core.Recorder();
+                using var stdout = new StreamWriter(Console.OpenStandardOutput());
+                stdout.Write(AppController.FormatEncoderLines(recorder.DetectEncoders()));
+                Shutdown(0);
+            }
+            catch (Exception ex) { Spezi.Core.AppLog.Error("Encoder detection failed.", ex); Shutdown(1); }
+            return;
+        }
+
         _mutex = new Mutex(true, @"Local\Spezi.SingleInstance", out var created);
         if (!created)
         {

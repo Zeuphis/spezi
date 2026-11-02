@@ -48,6 +48,8 @@ public partial class MainWindow : Window
         StateChanged += (_, _) =>
         {
             MaximizeButton.Content = WindowState == WindowState.Maximized ? "\uE923" : "\uE922";
+            // Pages stop their level meters and status timers when not visible.
+            Body.Visibility = WindowState == WindowState.Minimized ? Visibility.Hidden : Visibility.Visible;
             MaximizeButton.ToolTip = WindowState == WindowState.Maximized ? "Restore" : "Maximize";
         };
         _controller.BindHotkeys(_hotkeys);
