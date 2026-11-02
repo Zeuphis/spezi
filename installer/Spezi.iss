@@ -3,7 +3,7 @@
   #define ProjectRoot AddBackslash(SourcePath) + ".."
 #endif
 #ifndef AppVersion
-  #define AppVersion "1.0.0"
+  #error AppVersion missing: build via installer/Build-Installer.ps1 (version comes from Directory.Build.props)
 #endif
 #ifdef TestBuild
   #define AppName "Spezi Installer Test"

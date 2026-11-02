@@ -4,6 +4,12 @@ Spezi is a local Windows app for gameplay clips and full sessions. Recording sta
 
 Clips and sessions are H.264 video with one AAC audio track. Spezi prefers a hardware encoder (NVIDIA, AMD, then Intel). A software encoder exists only if you turn it on in Settings, because it uses much more CPU.
 
+## Build and test
+
+- `dotnet build Spezi.sln -c Release` and `dotnet test tests/Spezi.Tests` (hardware-free unit tests, also run in CI).
+- `dotnet run --project tests/Spezi.RecordingTests.csproj -c Release` runs the encoder/audio regression suite on a real PC.
+- App self-tests (`--self-test` etc.) are compiled only in Debug or with `-p:SpeziSelfTests=true`.
+
 ## Install
 
 1. Run `installer/Spezi-Setup.exe` to install Spezi for your Windows user account. Administrator privileges and a separate .NET installation are not required.
@@ -14,7 +20,7 @@ The `dist` folder remains a self-contained portable build: copy it anywhere and 
 
 ## Update to 1.1.1
 
-Finish any recording and exit Spezi from its system tray menu. Run `updater/Spezi-Updater.exe`. It detects an installed Spezi folder automatically; for a portable copy, select the existing folder containing `Spezi.exe`. The update preserves clips and preferences, runs offline and refuses to replace a newer version. Use `Spezi-Setup.exe` for a new installation. See [updater/README.md](updater/README.md) and [the release notes](RELEASE_NOTES_1.1.1.md).
+Finish any recording and exit Spezi from its system tray menu. Run `updater/Spezi-Updater.exe`. It detects an installed Spezi folder automatically; for a portable copy, select the existing folder containing `Spezi.exe`. The update preserves clips and preferences, runs offline and refuses to replace a newer version. Use `Spezi-Setup.exe` for a new installation. See [updater/README.md](updater/README.md) and [the changelog](CHANGELOG.md).
 
 Spezi opens directly on the Recording page, including on first launch. Configure the save folder, quality, hotkeys and audio in **Settings**. There is no separate recording setup wizard during installation or first launch. Existing preferences are preserved. The app and installer use English. Closing the window leaves Spezi running in the system tray. Use the tray menu to exit.
 
