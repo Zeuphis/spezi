@@ -16,10 +16,17 @@ internal sealed class ReplayBuffer
         lock (_gate)
         {
             _window = window < TimeSpan.FromSeconds(5) ? TimeSpan.FromSeconds(5) : window;
-            var estimate = (long)bitrateKbps * 1000L / 8L * (long)_window.TotalSeconds;
-            _maxBytes = Math.Clamp((long)(estimate * 1.35) + 32L * 1024 * 1024, 64L * 1024 * 1024, 1536L * 1024 * 1024);
+            _maxBytes = MemoryLimitBytes(_window, bitrateKbps);
             Trim();
         }
+    }
+
+    // Upper memory bound of the replay buffer; also shown next to the slider.
+    public static long MemoryLimitBytes(TimeSpan window, int bitrateKbps)
+    {
+        if (window < TimeSpan.FromSeconds(5)) window = TimeSpan.FromSeconds(5);
+        var estimate = (long)bitrateKbps * 1000L / 8L * (long)window.TotalSeconds;
+        return Math.Clamp((long)(estimate * 1.35) + 32L * 1024 * 1024, 64L * 1024 * 1024, 1536L * 1024 * 1024);
     }
 
     public void Add(EncodedPacket packet)

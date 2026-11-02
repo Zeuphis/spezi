@@ -62,6 +62,7 @@ public partial class SettingsPage : System.Windows.Controls.UserControl
         SoftwareBox.IsChecked = settings.AllowSoftwareEncoder;
         SystemAudioBox.IsChecked = settings.CaptureSystemAudio != false;
         ReplayDuration.Seconds = settings.ReplaySeconds;
+        ReplayMemoryText.Text = AppSettings.ReplayMemoryText(settings.ReplaySeconds, settings.VideoBitrateKbps);
         AudioModeBox.SelectedIndex = settings.AudioMode == AudioCaptureMode.Applications ? 1 : 0;
         AudioModeBox.IsEnabled = settings.CaptureSystemAudio != false;
         ApplicationsModeItem.IsEnabled = _controller.ApplicationAudioSupported;
@@ -81,6 +82,16 @@ public partial class SettingsPage : System.Windows.Controls.UserControl
         EncoderText.Text = hardware.Count == 0
             ? "No hardware encoder detected. Enable software encoding below to record."
             : "Detected hardware encoder: " + string.Join(", ", hardware.Select(e => e.Name));
+        if (hardware.Count == 0)
+        {
+            // Make the missing encoder obvious instead of a muted footnote.
+            EncoderBox.Background = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(0x4A, 0x2E, 0x1E));
+            EncoderText.Foreground = System.Windows.Media.Brushes.Orange;
+            EncoderText.Text = settings.AllowSoftwareEncoder
+                ? "No hardware encoder detected. Spezi records with the software encoder, which uses much more CPU."
+                : "No hardware encoder detected. Recording will not start until you enable software encoding under Advanced options.";
+            AdvancedOptions.IsExpanded = true;
+        }
         BuildAudio();
         BuildApplications();
         _loading = false;
@@ -334,6 +345,7 @@ public partial class SettingsPage : System.Windows.Controls.UserControl
     {
         if (_loading) return;
         _controller.Settings.ReplaySeconds = ReplayDuration.Seconds;
+        ReplayMemoryText.Text = AppSettings.ReplayMemoryText(ReplayDuration.Seconds, _controller.Settings.VideoBitrateKbps);
         _controller.Save();
     }
 

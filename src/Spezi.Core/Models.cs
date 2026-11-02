@@ -99,6 +99,12 @@ public sealed class AppSettings
 
     public static int ValidReplaySeconds(int value) => (int)Math.Round(Math.Clamp(value, 15, 300) / 15d, MidpointRounding.AwayFromZero) * 15;
 
+    public static string ReplayMemoryText(int seconds, int bitrateKbps)
+    {
+        var mb = Recording.ReplayBuffer.MemoryLimitBytes(TimeSpan.FromSeconds(seconds), bitrateKbps) / (1024d * 1024);
+        return mb >= 1024 ? $"Uses up to about {mb / 1024:0.0} GB of RAM at {bitrateKbps / 1000d:0.#} Mbit/s." : $"Uses up to about {mb:0} MB of RAM at {bitrateKbps / 1000d:0.#} Mbit/s.";
+    }
+
     public static string ReplayDurationText(int seconds) => seconds < 60 ? $"{seconds}s" : seconds % 60 == 0
         ? $"{seconds / 60}m" : $"{seconds / 60}m {seconds % 60}s";
 

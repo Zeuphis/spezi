@@ -138,6 +138,7 @@
           <StackPanel Orientation="Horizontal" Margin="0,0,0,14"><TextBlock Text="&#xE823;" Style="{StaticResource SettingIcon}"/><TextBlock Text="Replay" FontSize="15" FontWeight="SemiBold"/></StackPanel>
           <local:ReplayDurationControl x:Name="ReplayDuration" DurationChanged="ReplayDurationChanged"/>
           <TextBlock Text="Keep the last 15 seconds to 5 minutes, in 15-second steps." Style="{StaticResource SettingLabel}" Margin="0,5,0,0"/>
+          <TextBlock x:Name="ReplayMemoryText" Style="{StaticResource SettingLabel}" Margin="0,3,0,0"/>
         </StackPanel>
       </Border>
 
@@ -171,9 +172,9 @@
             <StackPanel><TextBlock Text="RESOLUTION" Style="{StaticResource SettingLabel}"/><ComboBox x:Name="ResolutionBox" SelectionChanged="ResolutionChanged"/></StackPanel>
             <StackPanel Grid.Column="2"><TextBlock Text="FRAME RATE" Style="{StaticResource SettingLabel}"/><ComboBox x:Name="FpsBox" SelectionChanged="FpsChanged"/></StackPanel>
           </Grid>
-          <Border Background="#20252B" CornerRadius="8" Padding="10" Margin="0,14,0,8"><TextBlock x:Name="EncoderText" FontSize="10.5" Foreground="{StaticResource Muted}" TextWrapping="Wrap"/></Border>
+          <Border x:Name="EncoderBox" Background="#20252B" CornerRadius="8" Padding="10" Margin="0,14,0,8"><TextBlock x:Name="EncoderText" FontSize="10.5" Foreground="{StaticResource Muted}" TextWrapping="Wrap"/></Border>
           <CheckBox x:Name="CursorBox" Style="{StaticResource SettingSwitch}" Checked="CursorChanged" Unchecked="CursorChanged"><TextBlock Text="Capture cursor" FontSize="12" TextWrapping="Wrap"/></CheckBox>
-          <Expander Header="Advanced options" Foreground="{StaticResource Muted}" FontSize="11.5" Margin="0,8,0,0">
+          <Expander x:Name="AdvancedOptions" Header="Advanced options" Foreground="{StaticResource Muted}" FontSize="11.5" Margin="0,8,0,0">
             <CheckBox x:Name="SoftwareBox" Style="{StaticResource SettingSwitch}" Checked="SoftwareChanged" Unchecked="SoftwareChanged" Margin="0,12,0,0"><StackPanel><TextBlock Text="Allow software encoding" FontSize="12"/><TextBlock Text="Uses significantly more CPU." FontSize="10.5" Foreground="{StaticResource Muted}" TextWrapping="Wrap" Margin="0,3,0,0"/></StackPanel></CheckBox>
           </Expander>
         </StackPanel>

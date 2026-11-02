@@ -1,4 +1,4 @@
-﻿using Spezi.Core;
+using Spezi.Core;
 using Spezi.Core.Recording;
 using Xunit;
 
@@ -87,6 +87,16 @@ public class NamingTests
     {
         Assert.StartsWith("Rainbow Six Siege_Clip_", RecordingNames.Create("Clip", "Rainbow Six Siege"));
         Assert.DoesNotContain(RecordingNames.Create("Recording", "A:B/C?D*"), c => Path.GetInvalidFileNameChars().Contains(c));
+    }
+
+    [Fact]
+    public void ReplayMemoryEstimateMatchesBufferLimit()
+    {
+        // 5 min at 15 Mbit/s: 562.5 MB * 1.35 + 32 MB ~= 756 MB
+        var bytes = ReplayBuffer.MemoryLimitBytes(TimeSpan.FromMinutes(5), 15000);
+        Assert.InRange(bytes / (1024 * 1024), 700, 800);
+        Assert.Equal(64L * 1024 * 1024, ReplayBuffer.MemoryLimitBytes(TimeSpan.FromSeconds(15), 2000));
+        Assert.Contains("MB of RAM", AppSettings.ReplayMemoryText(300, 15000));
     }
 
     [Fact]
