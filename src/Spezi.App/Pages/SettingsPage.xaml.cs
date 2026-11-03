@@ -476,6 +476,39 @@ public partial class SettingsPage : System.Windows.Controls.UserControl
         Reload();
     }
 
+    bool _checkingUpdates;
+    // On-demand check, independent of the startup toggle. One request at a time.
+    async void CheckUpdatesNow(object sender, RoutedEventArgs e)
+    {
+        if (_checkingUpdates) return;
+        _checkingUpdates = true;
+        UpdateLink.IsEnabled = false;
+        UpdateStatus.Visibility = Visibility.Collapsed;
+        UpdateLinkText.Text = "Checking\u2026";
+        var status = "Couldn't check";
+        try
+        {
+            using var http = UpdateChecker.CreateClient();
+            var (ok, update) = await UpdateChecker.CheckDetailedAsync(http, UpdateChecker.CurrentVersion);
+            if (!ok) { /* keep "Couldn't check" */ }
+            else if (update == null) status = "You're up to date";
+            else
+            {
+                status = $"{update.Version.ToString(3)} available";
+                (Window.GetWindow(this) as MainWindow)?.ShowUpdateBanner(update);
+            }
+        }
+        catch (Exception ex) { AppLog.Error("Manual update check failed.", ex); }
+        finally
+        {
+            UpdateLinkText.Text = "Check for updates";
+            UpdateStatus.Text = "  \u00B7  " + status;
+            UpdateStatus.Visibility = Visibility.Visible;
+            UpdateLink.IsEnabled = true;
+            _checkingUpdates = false;
+        }
+    }
+
     void OpenLink(object sender, System.Windows.Navigation.RequestNavigateEventArgs e)
     {
         try { System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo(e.Uri.AbsoluteUri) { UseShellExecute = true }); }

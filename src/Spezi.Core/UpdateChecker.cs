@@ -1,4 +1,4 @@
-﻿using System.Net;
+using System.Net;
 using System.Net.Http.Headers;
 using System.Security.Cryptography;
 using System.Text.Json;
@@ -88,7 +88,11 @@ public static partial class UpdateChecker
     public static Version CurrentVersion => typeof(UpdateChecker).Assembly.GetName().Version ?? new Version(0, 0, 0);
 
     // Never throws: network errors, 404 (private repo / no release) and timeouts are logged only.
-    public static async Task<AvailableUpdate?> CheckAsync(HttpClient http, Version current, CancellationToken cancellation = default)
+    public static async Task<AvailableUpdate?> CheckAsync(HttpClient http, Version current, CancellationToken cancellation = default) =>
+        (await CheckDetailedAsync(http, current, cancellation).ConfigureAwait(false)).Update;
+
+    // Ok = false when GitHub could not be reached or answered with an error.
+    public static async Task<(bool Ok, AvailableUpdate? Update)> CheckDetailedAsync(HttpClient http, Version current, CancellationToken cancellation = default)
     {
         try
         {
@@ -98,22 +102,22 @@ public static partial class UpdateChecker
             if (response.StatusCode == HttpStatusCode.NotFound)
             {
                 AppLog.Info("Update check: no public release found (404). The repository may be private.");
-                return null;
+                return (false, null);
             }
             if (!response.IsSuccessStatusCode)
             {
                 AppLog.Info($"Update check: GitHub returned {(int)response.StatusCode}.");
-                return null;
+                return (false, null);
             }
             var json = await response.Content.ReadAsStringAsync(timeout.Token).ConfigureAwait(false);
             var update = ParseRelease(json, current);
             AppLog.Info(update == null ? "Update check: Spezi is up to date." : $"Update check: {update.Tag} is available.");
-            return update;
+            return (true, update);
         }
         catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException or OperationCanceledException or JsonException or InvalidOperationException)
         {
             AppLog.Info("Update check failed: " + ex.Message);
-            return null;
+            return (false, null);
         }
     }
 

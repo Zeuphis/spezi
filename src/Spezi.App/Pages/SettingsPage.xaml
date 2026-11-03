@@ -240,6 +240,9 @@
         <TextBlock x:Name="VersionText" Text="Spezi" Foreground="{StaticResource Muted}" FontSize="11.5" VerticalAlignment="Center"/>
         <TextBlock Text="  ·  " Foreground="{StaticResource Muted}" FontSize="11.5" VerticalAlignment="Center"/>
         <TextBlock FontSize="11.5" VerticalAlignment="Center"><Hyperlink NavigateUri="https://github.com/Zeuphis/spezi" RequestNavigate="OpenLink" Foreground="{DynamicResource AccentText}" ToolTip="https://github.com/Zeuphis/spezi">GitHub</Hyperlink></TextBlock>
+        <TextBlock Text="  ·  " Foreground="{StaticResource Muted}" FontSize="11.5" VerticalAlignment="Center"/>
+        <TextBlock FontSize="11.5" VerticalAlignment="Center"><Hyperlink x:Name="UpdateLink" Click="CheckUpdatesNow" Foreground="{DynamicResource AccentText}" AutomationProperties.Name="Check for updates"><Run x:Name="UpdateLinkText" Text="Check for updates"/></Hyperlink></TextBlock>
+        <TextBlock x:Name="UpdateStatus" Foreground="{StaticResource Muted}" FontSize="11.5" VerticalAlignment="Center" Visibility="Collapsed"/>
       </StackPanel>
     </StackPanel>
   </ScrollViewer>
