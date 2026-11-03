@@ -35,6 +35,7 @@ public partial class CapturePage : System.Windows.Controls.UserControl
             if (IsVisible)
             {
                 RefreshStatus();
+                RefreshMicAsync();
                 RefreshClips();
             }
             else
@@ -143,9 +144,9 @@ public partial class CapturePage : System.Windows.Controls.UserControl
         _filling = true;
         ReplayToggle.IsChecked = ReplayOn(snapshot);
         SystemBox.IsChecked = settings.CaptureSystemAudio != false;
-        var mic = _controller.AudioDevices().FirstOrDefault(device => device.IsMicrophone);
-        MicBox.IsEnabled = mic != null;
-        MicBox.IsChecked = settings.RecordMicrophone && mic != null;
+        // Cached: device enumeration is slow (COM/MMDevice) and runs off the UI thread in RefreshMicAsync.
+        MicBox.IsEnabled = _micAvailable;
+        MicBox.IsChecked = settings.RecordMicrophone && _micAvailable;
         _filling = false;
 
         ClipHotkeyText.Text = HotkeyText.Format(settings.ReplayHotkey);
@@ -185,6 +186,22 @@ public partial class CapturePage : System.Windows.Controls.UserControl
             : $"{free / 1024d / 1024 / 1024:0.0} GB free";
     }
 
+    bool _micAvailable = true;
+    int _micGeneration;
+    async void RefreshMicAsync()
+    {
+        var generation = ++_micGeneration;
+        bool available;
+        try { available = await Task.Run(() => _controller.AudioDevices().Any(device => device.IsMicrophone)); }
+        catch (Exception ex) { AppLog.Error("Microphone lookup failed.", ex); return; }
+        if (generation != _micGeneration || available == _micAvailable) return;
+        _micAvailable = available;
+        _filling = true;
+        MicBox.IsEnabled = available;
+        MicBox.IsChecked = _controller.Settings.RecordMicrophone && available;
+        _filling = false;
+    }
+
     public void RefreshClips()
     {
         var generation = ++_generation;
@@ -216,9 +233,14 @@ public partial class CapturePage : System.Windows.Controls.UserControl
         // Resumes on the UI thread.
             {
                 if (generation != _generation || cancellation.IsCancellationRequested) return;
-                _recent.Clear();
-                foreach (var clip in result)
-                    _recent.Add(clip);
+                // Same clips as last time: keep the existing tiles and their thumbnails (no flicker, no re-decode).
+                if (!result.Select(clip => clip.Path).SequenceEqual(_recent.Select(clip => clip.Path), StringComparer.OrdinalIgnoreCase))
+                {
+                    var previous = _recent.ToDictionary(clip => clip.Path, StringComparer.OrdinalIgnoreCase);
+                    _recent.Clear();
+                    foreach (var clip in result)
+                        _recent.Add(previous.TryGetValue(clip.Path, out var kept) ? kept : clip);
+                }
                 EmptyClips.Visibility = _recent.Count == 0 ? Visibility.Visible : Visibility.Collapsed;
                 if (IsVisible)
                     _ = LoadClipsAsync(generation);
@@ -229,13 +251,16 @@ public partial class CapturePage : System.Windows.Controls.UserControl
     async Task LoadClipsAsync(int generation)
     {
         var cancellation = _details?.Token ?? CancellationToken.None;
+        // Same decode width as gallery tiles, so both pages share ClipCache's in-memory entries.
+        var width = (int)Math.Ceiling(200 * VisualTreeHelper.GetDpi(this).DpiScaleX);
         foreach (var clip in _recent.ToArray())
         {
             if (generation != _generation || cancellation.IsCancellationRequested)
                 return;
+            if (clip.Thumbnail != null) continue;
             try
             {
-                var details = await ClipCache.GetDetailsAsync(clip.Path, cancellation);
+                var details = await ClipCache.GetDetailsAsync(clip.Path, width, cancellation);
                 if (generation != _generation || cancellation.IsCancellationRequested) return;
                 clip.DurationText = ClipText.FormatDuration(details.Duration);
                 clip.Thumbnail = details.Thumbnail;
