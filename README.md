@@ -1,67 +1,76 @@
 # Spezi
 
-Spezi is a local Windows app for gameplay clips and full sessions. Recording stays on this PC. The core features do not need an account or an internet connection.
+Spezi is a lightweight Windows app for saving gameplay clips and recording full sessions. Everything stays on your PC: no account, no cloud, and the core features work offline.
 
-Clips and sessions are H.264 video with one AAC audio track. Spezi prefers a hardware encoder (NVIDIA, AMD, then Intel). A software encoder exists only if you turn it on in Settings, because it uses much more CPU.
+Video is H.264 with one AAC audio track. Spezi prefers a hardware encoder (NVIDIA, AMD, then Intel); software encoding is available only if you turn it on, because it uses much more CPU.
 
-## Build and test
+## Features
 
-- `dotnet build Spezi.sln -c Release` and `dotnet test tests/Spezi.Tests` (hardware-free unit tests, also run in CI).
-- `dotnet run --project tests/Spezi.RecordingTests.csproj -c Release` runs the encoder/audio regression suite on a real PC.
-- App self-tests (`--self-test` etc.) are compiled only in Debug or with `-p:SpeziSelfTests=true`.
+- **Replay buffer** – keeps the last 15 seconds to 5 minutes (15-second steps) as already compressed video in memory. While replay is on, the Recording page simply shows *Last X ready to save*. Press the clip hotkey to write that window to disk; replay keeps running.
+- **Recording** – start and stop a continuous session with a hotkey or the Record button, with a live timer. Replay and a session share one capture and one encoder.
+- **Automatic replay** – optionally starts replay when a game comes to the foreground and keeps it running until you turn it off.
+- **Gallery** – the latest clip is shown large at the top, game filter chips (*All* plus one per game with counts), a 3-column grid with time, game name and duration, and pages of 12 clips. Search by filename or game, sort newest/oldest. Click a tile to play it in your default video player; right-click for Open, Rename, Open folder and Delete.
+- **Audio** – all system audio or only selected apps (e.g. the game and Discord; app-only capture needs Windows build 20348+), plus an optional microphone. Per-source volume and level meters. The microphone is mono by default (centered in both channels); turn **Mono** off to keep its channels as captured.
+- **Game folders** – clips are sorted into one folder per detected game; clips without a game go into *General*.
+- **Tray** – closing the window keeps Spezi running in the system tray (Open Spezi / Exit). Optional start with Windows.
+- **Updates** – an optional check for a new GitHub release once per start, and a *Check for updates* link at the bottom of Settings. Updates are downloaded over HTTPS and run only after the SHA-256 checksum matches.
+- **Safe recording** – warns below 8 GB free space and refuses to start below 1 GB. Sessions are written in segments, so after a crash the next launch can recover them.
 
-## Install
+### Resource efficiency
 
-1. Run `installer/Spezi-Setup.exe` to install Spezi for your Windows user account. Administrator privileges and a separate .NET installation are not required.
-2. Choose an installation folder and optionally create a desktop shortcut. Launch Spezi from the Start menu or the shortcut.
-3. To uninstall, use Windows Settings → Installed apps → Spezi. Clips and preferences are preserved.
+Spezi is built to stay out of the way while you play:
 
-The `dist` folder remains a self-contained portable build: copy it anywhere and run `Spezi.exe`. See [installer/README.md](installer/README.md) for rebuilding the installer.
+- No live preview.
+- Thumbnails are decoded at display size, cached on disk (`%LocalAppData%\Spezi\thumbs`) and only loaded for the visible gallery page.
+- Game detection reacts to foreground-window changes instead of constant polling.
+- Timers and animations pause while their page is hidden, the window is minimized or Spezi is in the tray; memory is trimmed once when hidden to the tray and nothing is recording.
+- Hardware encoder detection runs in a short-lived helper process, so GPU driver threads don't stay loaded.
 
+## Download and install
 
-## Record
+Download `Spezi-Setup.exe` from the [latest release](https://github.com/Zeuphis/spezi/releases/latest).
 
-- **Replay** keeps the last 15 seconds to 5 minutes in a memory buffer of already compressed video. Choose the duration with the slider in 15-second steps, exclusively in Settings. A clear scale below the track uses larger full-minute markers. The selected point and exact duration badge follow the app accent color. The clip hotkey writes that window to disk and the background recording continues. Videos start on a keyframe, so a saved clip can be slightly shorter than the selected window.
-- **Record** starts a continuous session. Press the same hotkey again to finish and save it.
-- Replay and a session share one capture and one encoder.
-- Automatic replay starts when a game is detected. Once enabled, replay continues until you turn it off or exit Spezi. Switching to the desktop, another app, or closing the game does not clear the buffer. Screen capture includes the desktop and other apps on the selected display; an explicitly selected window remains a window-only source.
-- Pick a screen or a window in Settings. A running recording keeps its source until you stop it.
-- There is no live preview. That is intentional, so the app does less work while you play.
+- Windows 10 (build 19041+) or Windows 11, x64. The .NET runtime is included; no administrator rights needed.
+- Installs per user (default `%LocalAppData%\Programs\Spezi`), with a Start menu entry and an optional desktop shortcut.
+- To update an existing installation you can also use `Spezi-Updater.exe` from the release. Each file has a `.sha256` checksum next to it.
+- Uninstall via Windows Settings → Installed apps → Spezi. Clips and settings are kept.
 
-Default hotkeys:
+The installer is not signed with a code-signing certificate, so Windows SmartScreen may ask for confirmation.
 
-- Save clip: Ctrl+Shift+F8
-- Start or stop a session: Ctrl+Shift+F9
+## Usage
 
-Page Up and Page Down can also be assigned, including without modifiers. Spezi pauses its existing shortcuts while a hotkey field is being edited. For a Page key already registered by another app, an alternative listener handles the selected shortcut. Other conflicting combinations are reported. The two hotkeys cannot be the same combination.
+1. Open Spezi and turn on **Replay** on the Recording page (or enable automatic replay in Settings).
+2. Play. Press **Ctrl+Shift+F8** to save the last moments as a clip.
+3. Press **Ctrl+Shift+F9** to start or stop a full recording.
+4. Open the **Gallery** to watch, rename or delete clips.
 
-## Audio
+Hotkeys can be changed in Settings (Page Up / Page Down are also supported). The two hotkeys must be different.
 
-Choose **All system audio** to record selected playback devices, including game and voice apps that use those devices. Choose **Selected apps only** to record only the checked applications: the current game, Discord, TeamSpeak, or other running apps. Windows process loopback records each selected process tree across playback devices; selecting a parent and its child does not duplicate their audio. App-specific capture requires Windows build 20348 or newer (Windows 11 on normal desktop installations). Unsupported systems continue to offer whole-device system audio; app-only recording never falls back to recording other applications.
+## Settings
 
-You can mix multiple selected applications and adjust their recording volume independently. Selections are saved by app identity, so a checked app is automatically attached when it starts or restarts. The current game follows the selected game window, or a detected foreground game when recording a display, and stays selected when you briefly switch to Spezi. A microphone remains optional and independent. Audio sources apply to the next recording; recording volume changes apply immediately. The audio test updates its sources when you change selections. Spezi mixes recorded sources into one AAC track.
+Changes are saved automatically to `%AppData%\Spezi\settings.json`.
 
-Use the level meters and **Test audio** in Settings to check the mix. If a device is unplugged, Spezi reports it and keeps recording the devices that remain. Changing the Windows default device does not drop a device you already selected.
+- **Appearance** – accent color.
+- **Replay** – buffer length.
+- **Storage & source** – clip folder, screen or window to capture.
+- **Video & quality** – Efficient (720p · 30 FPS), Balanced (1080p · 60 FPS) or Quality (up to 1440p · 60 FPS), resolution, frame rate, cursor capture, optional software encoding.
+- **Hotkeys** – save clip and start/stop recording.
+- **Audio & microphone** – system or selected-app audio, devices, volumes, microphone and Mono.
+- **Notifications** – toasts for starts, stops and saved clips, with display duration.
+- **Background** – start with Windows, start replay automatically, check for updates on startup.
 
-Microphone input is downmixed to mono and placed equally in the left and right channels, including interfaces that expose a single connected microphone as one side of a stereo device. App and system sources retain their stereo channels. Adjust microphone volume in Settings if needed.
-
-## Gallery and settings
-
-The gallery uses video cards with large 16:9 previews, game badges, duration overlays, readable titles, dates and file sizes. A compact search field filters by filename or game, and a small sort control switches between newest and oldest. The actions menu on each card contains playback, rename, open folder and delete. Automatically generated filenames get readable display titles; custom names and files on disk are preserved. Playback from the gallery and recent clips opens the Windows default app for `.mp4`, such as Media Player or VLC. Spezi has no built-in video player. Only visible entries load compact thumbnails, cached under `%LocalAppData%\Spezi\thumbs`. A bounded background decoder also works during recording. Clips are organized in game folders.
-
-Settings cover the folder, replay length, hotkeys, resolution, frame rate, bitrate, the three quality profiles (Efficient, Balanced, High quality), audio devices and individual applications, startup, and automatic replay when a fullscreen or borderless game is in front. Settings are stored in `%AppData%\Spezi\settings.json`. Existing replay preferences in minutes migrate to seconds automatically. Clips without a detected game go into **General**. An existing **Allgemein** folder is reused and shown as General in the gallery. Existing filenames are not renamed; new sessions and recoveries use Recording and Recovered in their filenames.
-
-Spezi warns when the destination drive has less than 8 GB free and refuses to start a recording below 1 GB. A session is stored in short segments first, then joined into one file, so a crash keeps everything except the segment that was still open. The next launch offers to recover those parts.
+The log file is `%LocalAppData%\Spezi\spezi.log`.
 
 ## Build from source
 
-Requires the .NET 9 SDK and a 64-bit version of Windows 10 or 11.
+Requires the .NET 9 SDK and 64-bit Windows 10 or 11 (WPF).
 
 ```text
 dotnet build Spezi.sln -c Release
+dotnet test tests/Spezi.Tests
 dotnet publish src/Spezi.App/Spezi.App.csproj -c Release -r win-x64 --self-contained true -o dist
 ```
 
-`Spezi.exe --self-test` records a few seconds from the primary display and writes a short report to `%TEMP%\SpeziSelfTest\result.txt`.
-
-The log file is `%LocalAppData%\Spezi\spezi.log`.
+- `dotnet run --project tests/Spezi.RecordingTests.csproj -c Release` runs the encoder/audio regression suite on a real PC.
+- App self-tests (`--self-test`) are compiled only in Debug or with `-p:SpeziSelfTests=true`.
+- See [installer/README.md](installer/README.md) for building the installer. The version is defined once in `Directory.Build.props`; changes are listed in [CHANGELOG.md](CHANGELOG.md).
