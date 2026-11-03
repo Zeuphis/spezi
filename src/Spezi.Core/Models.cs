@@ -63,6 +63,8 @@ public sealed class AppSettings
     public List<string> OutputDeviceIds { get; set; } = [];
     public bool RecordMicrophone { get; set; }
     public string? MicrophoneId { get; set; }
+    // true: microphone channels are averaged and centered; false: kept as captured (stereo).
+    public bool MicrophoneMono { get; set; } = true;
     public Dictionary<string, double> DeviceGains { get; set; } = new(StringComparer.OrdinalIgnoreCase);
     public bool StartWithWindows { get; set; }
     public bool AutoReplayWhenPlaying { get; set; }

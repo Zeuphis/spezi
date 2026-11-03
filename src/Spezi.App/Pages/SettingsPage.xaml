@@ -201,7 +201,7 @@
 
       <Border Style="{StaticResource SettingCard}">
         <StackPanel>
-          <Grid Margin="0,0,0,14"><Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions><StackPanel Orientation="Horizontal"><TextBlock Text="&#xE767;" Style="{StaticResource SettingIcon}"/><TextBlock Text="Audio &amp; microphone" FontSize="15" FontWeight="SemiBold" VerticalAlignment="Center"/></StackPanel><StackPanel Grid.Column="1" Orientation="Horizontal"><TextBlock Text="&#xE946;" FontFamily="Segoe MDL2 Assets" FontSize="14" Foreground="{StaticResource Muted}" VerticalAlignment="Center" Margin="0,0,4,0" Cursor="Help" ToolTipService.InitialShowDelay="150" ToolTip="Selected sources are mixed into one audio track. Microphone audio is centered (mono); app and system audio stays stereo. Source changes apply to the next recording. Volume can be adjusted while recording." AutomationProperties.Name="Audio info"/></StackPanel></Grid>
+          <Grid Margin="0,0,0,14"><Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions><StackPanel Orientation="Horizontal"><TextBlock Text="&#xE767;" Style="{StaticResource SettingIcon}"/><TextBlock Text="Audio &amp; microphone" FontSize="15" FontWeight="SemiBold" VerticalAlignment="Center"/></StackPanel></Grid>
           <CheckBox x:Name="SystemAudioBox" Style="{StaticResource SettingSwitch}" Checked="SystemAudioChanged" Unchecked="SystemAudioChanged" Margin="0,0,0,8" AutomationProperties.Name="App and system audio"><TextBlock Text="App &amp; system audio" FontSize="13" FontWeight="SemiBold"/></CheckBox>
           <Grid Margin="0,0,0,8">
             <Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
@@ -220,6 +220,9 @@
           <Border Height="1" Background="{StaticResource Line}" Margin="0,10,0,10"/>
           <CheckBox x:Name="MicBox" Style="{StaticResource SettingSwitch}" Checked="MicChanged" Unchecked="MicChanged" Margin="0,0,0,8" AutomationProperties.Name="Microphone"><TextBlock Text="Microphone" FontSize="13" FontWeight="SemiBold"/></CheckBox>
           <StackPanel x:Name="MicList"/>
+          <CheckBox x:Name="MicMonoBox" Style="{StaticResource SettingSwitch}" Checked="MicMonoChanged" Unchecked="MicMonoChanged" Margin="0,8,0,0" AutomationProperties.Name="Microphone mono">
+            <StackPanel><TextBlock Text="Mono" FontSize="13" FontWeight="SemiBold"/><TextBlock Text="Center the microphone. Off keeps its channels as captured." Style="{StaticResource SettingLabel}" Margin="0,2,0,0"/></StackPanel>
+          </CheckBox>
         </StackPanel>
       </Border>
 

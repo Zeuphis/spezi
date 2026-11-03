@@ -113,6 +113,7 @@ internal sealed class AudioEngine : IDisposable
                 AddSlot(mic, true, settings.GainFor(mic.Id));
         }
 
+        foreach (var slot in _slots) slot.Mono = settings.MicrophoneMono;
         _running = true;
         _mixedFrames = 0;
         _mixThread = new Thread(MixLoop) { IsBackground = true, Name = "Spezi Audio" };
@@ -140,7 +141,10 @@ internal sealed class AudioEngine : IDisposable
             if (_applicationGains != null)
                 foreach (var id in _applicationGains.Keys) _applicationGains[id] = settings.GainFor(id);
             foreach (var slot in _slots)
+            {
                 slot.Gain = settings.GainFor(slot.GainId);
+                slot.Mono = settings.MicrophoneMono;
+            }
         }
     }
 
@@ -385,6 +389,7 @@ internal sealed class AudioEngine : IDisposable
         public string Name { get; }
         public bool Microphone { get; }
         public double Gain;
+        public volatile bool Mono = true;
         public float Peak;
         public WaveFormat SourceFormat { get; }
         public IWaveIn? Capture;
@@ -488,7 +493,8 @@ internal sealed class AudioEngine : IDisposable
             var frames = count / frameSize;
             var isFloat = format.Encoding == WaveFormatEncoding.IeeeFloat ||
                 format is WaveFormatExtensible extensible && extensible.SubFormat == IeeeFloatSubformat;
-            if (!Microphone && format.SampleRate == Rate && channels == 2 && bytesPerSample == 4 && isFloat)
+            var mono = Microphone && Mono;
+            if (!mono && format.SampleRate == Rate && channels == 2 && bytesPerSample == 4 && isFloat)
                 return MemoryMarshal.Cast<byte, float>(buffer.AsSpan(0, frames * frameSize));
             var capacity = checked(((int)Math.Ceiling(frames * (double)Rate / Math.Max(1, format.SampleRate)) + 4) * 2);
             if (_converted.Length < capacity) Array.Resize(ref _converted, Math.Max(capacity, _converted.Length * 2));
@@ -498,15 +504,15 @@ internal sealed class AudioEngine : IDisposable
             {
                 var left = ReadSample(buffer, i * frameSize, bytesPerSample, format);
                 var right = channels > 1 ? ReadSample(buffer, i * frameSize + bytesPerSample, bytesPerSample, format) : left;
-                if (Microphone && channels > 1)
+                if (mono && channels > 1)
                 {
                     // Interfaces often expose a single mic as stereo with one
                     // silent channel. Center the mic before resampling/mixing;
                     // system and application audio keep their stereo image.
-                    var mono = left + right;
+                    var sum = left + right;
                     for (var channel = 2; channel < channels; channel++)
-                        mono += ReadSample(buffer, i * frameSize + channel * bytesPerSample, bytesPerSample, format);
-                    left = right = mono / channels;
+                        sum += ReadSample(buffer, i * frameSize + channel * bytesPerSample, bytesPerSample, format);
+                    left = right = sum / channels;
                 }
                 var position = _resamplePhase;
                 if (format.SampleRate == Rate)

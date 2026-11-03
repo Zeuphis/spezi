@@ -144,6 +144,8 @@ public partial class SettingsPage : System.Windows.Controls.UserControl
         SoftwareBox.IsChecked = settings.AllowSoftwareEncoder;
         SystemAudioBox.IsChecked = settings.CaptureSystemAudio != false;
         MicBox.IsChecked = settings.RecordMicrophone;
+        MicMonoBox.IsChecked = settings.MicrophoneMono;
+        MicMonoBox.IsEnabled = settings.RecordMicrophone;
         ReplayDuration.Seconds = settings.ReplaySeconds;
         ReplayMemoryText.Text = AppSettings.ReplayMemoryText(settings.ReplaySeconds, settings.VideoBitrateKbps);
         AudioModeBox.SelectedIndex = settings.AudioMode == AudioCaptureMode.Applications ? 1 : 0;
@@ -457,6 +459,13 @@ public partial class SettingsPage : System.Windows.Controls.UserControl
         }
         _controller.Save();
         Reload();
+    }
+
+    void MicMonoChanged(object sender, RoutedEventArgs e)
+    {
+        if (_loading) return;
+        _controller.Settings.MicrophoneMono = MicMonoBox.IsChecked == true;
+        _controller.Save();  // applied live to a running mixer
     }
 
     void MicChanged(object sender, RoutedEventArgs e)
