@@ -19,6 +19,15 @@ public partial class GalleryPage : System.Windows.Controls.UserControl
     int _generation;
     readonly System.Windows.Threading.DispatcherTimer _searchDelay = new() { Interval = TimeSpan.FromMilliseconds(200) };
     CancellationTokenSource? _scan;
+    const int PageSize = 12;
+    List<ClipRow> _all = [];
+    List<ClipRow> _filtered = [];
+    string? _gameFilter;
+    string _query = "";
+    int _page = 1;
+
+    // Self-tests: every clip matching search + game filter, in display order (hero first).
+    internal IReadOnlyList<ClipRow> FilteredRows => _filtered;
 
     public GalleryPage(AppController controller)
     {
@@ -33,6 +42,7 @@ public partial class GalleryPage : System.Windows.Controls.UserControl
             _searchDelay.Stop();
             _scan?.Cancel();
             foreach (var row in _rows) HideRow(row);
+            if (Hero.DataContext is ClipRow hero) HideRow(hero);
         };
     }
 
@@ -47,7 +57,7 @@ public partial class GalleryPage : System.Windows.Controls.UserControl
         var directory = _controller.Settings.OutputDirectory;
         var query = SearchBox.Text.Trim();
         var newestFirst = _newestFirst;
-        LibraryText.Text = "Loading clips…";
+        LibraryText.Text = "Loading clips\u2026";
         _ = PopulateAsync();
         async Task PopulateAsync()
         {
@@ -72,21 +82,112 @@ public partial class GalleryPage : System.Windows.Controls.UserControl
         // Resumes on the UI thread.
             {
                 if (generation != _generation) return;
-                foreach (var row in _rows) HideRow(row);
-                _rows.Clear();
-                foreach (var row in result)
-                    _rows.Add(row);
-                EmptyState.Visibility = _rows.Count == 0 ? Visibility.Visible : Visibility.Collapsed;
-                Clips.Visibility = _rows.Count == 0 ? Visibility.Collapsed : Visibility.Visible;
-                EmptyTitle.Text = query.Length == 0 ? "Your first highlight awaits" : "No matching clips";
-                EmptyText.Text = query.Length == 0
-                    ? "Save a clip while you play. Your moments will show up here."
-                    : "Try a different filename or game.";
-                var games = _rows.Select(row => row.Game).Distinct(StringComparer.OrdinalIgnoreCase).Count();
-                LibraryText.Text = _rows.Count == 400 ? "Showing 400 clips" : query.Length > 0
-                    ? $"{_rows.Count} {(_rows.Count == 1 ? "match" : "matches")}" : _rows.Count == 0
-                    ? "Your saved moments." : $"{_rows.Count} {(_rows.Count == 1 ? "clip" : "clips")} · {games} {(games == 1 ? "game" : "games")}";
+                _all = result;
+                _query = query;
+                _page = 1;
+                if (_gameFilter != null && !_all.Any(row => row.Game.Equals(_gameFilter, StringComparison.OrdinalIgnoreCase))) _gameFilter = null;
+                BuildChips();
+                ApplyFilter();
+                var games = _all.Select(row => row.Game).Distinct(StringComparer.OrdinalIgnoreCase).Count();
+                LibraryText.Text = _all.Count == 400 ? "Showing 400 clips" : query.Length > 0
+                    ? $"{_all.Count} {(_all.Count == 1 ? "match" : "matches")}" : _all.Count == 0
+                    ? "Your saved moments." : $"{_all.Count} {(_all.Count == 1 ? "clip" : "clips")} \u00B7 {games} {(games == 1 ? "game" : "games")}";
             }
+        }
+    }
+
+    void BuildChips()
+    {
+        GameChips.Children.Clear();
+        var groups = _all.GroupBy(row => row.Game, StringComparer.OrdinalIgnoreCase)
+            .Select(group => (Game: group.First().Game, Count: group.Count()))
+            .OrderByDescending(group => group.Count).ThenBy(group => group.Game, StringComparer.OrdinalIgnoreCase).ToList();
+        GameChips.Visibility = _all.Count == 0 ? Visibility.Collapsed : Visibility.Visible;
+        if (_all.Count == 0) return;
+        AddChip("All", null, _all.Count);
+        foreach (var (game, count) in groups) AddChip(game, game, count);
+        void AddChip(string label, string? game, int count)
+        {
+            var text = new TextBlock { FontSize = 11.5 };
+            text.Inlines.Add(new System.Windows.Documents.Run(label) { FontWeight = FontWeights.SemiBold });
+            text.Inlines.Add(new System.Windows.Documents.Run("  " + count) { FontWeight = FontWeights.Normal });
+            var chip = new System.Windows.Controls.RadioButton
+            {
+                Content = text, GroupName = "GalleryGame", Style = (Style)FindResource("FilterChip"),
+                IsChecked = string.Equals(game, _gameFilter, StringComparison.OrdinalIgnoreCase)
+            };
+            chip.SetValue(System.Windows.Automation.AutomationProperties.NameProperty, $"{label} ({count})");
+            chip.Checked += (_, _) =>
+            {
+                if (string.Equals(game, _gameFilter, StringComparison.OrdinalIgnoreCase)) return;
+                _gameFilter = game; _page = 1; ApplyFilter();
+            };
+            GameChips.Children.Add(chip);
+        }
+    }
+
+    // Splits the filtered list into the latest-clip hero (page 1, All, no search) and 12-clip pages.
+    void ApplyFilter()
+    {
+        _filtered = _gameFilter == null ? _all : _all.Where(row => row.Game.Equals(_gameFilter, StringComparison.OrdinalIgnoreCase)).ToList();
+        var hasHero = _gameFilter == null && _query.Length == 0 && _newestFirst && _filtered.Count > 0;
+        var rest = hasHero ? _filtered.Skip(1).ToList() : _filtered;
+        var pages = Math.Max(1, (rest.Count + PageSize - 1) / PageSize);
+        _page = Math.Clamp(_page, 1, pages);
+        var showHero = hasHero && _page == 1;
+        if (Hero.DataContext is ClipRow oldHero && !ReferenceEquals(oldHero, showHero ? _filtered[0] : null)) HideRow(oldHero);
+        Hero.DataContext = showHero ? _filtered[0] : null;
+        Hero.Visibility = showHero ? Visibility.Visible : Visibility.Collapsed;
+
+        foreach (var row in _rows) HideRow(row);
+        _rows.Clear();
+        foreach (var row in rest.Skip((_page - 1) * PageSize).Take(PageSize)) _rows.Add(row);
+
+        var empty = _filtered.Count == 0;
+        EmptyState.Visibility = empty ? Visibility.Visible : Visibility.Collapsed;
+        GalleryScroll.Visibility = empty ? Visibility.Collapsed : Visibility.Visible;
+        Clips.Visibility = empty ? Visibility.Collapsed : Visibility.Visible;
+        EmptyTitle.Text = _query.Length == 0 ? "Your first highlight awaits" : "No matching clips";
+        EmptyText.Text = _query.Length == 0
+            ? "Save a clip while you play. Your moments will show up here."
+            : "Try a different filename or game.";
+        BuildPager(pages);
+        GalleryScroll.ScrollToTop();
+    }
+
+    void BuildPager(int pages)
+    {
+        Pager.Children.Clear();
+        Pager.Visibility = pages > 1 ? Visibility.Visible : Visibility.Collapsed;
+        if (pages <= 1) return;
+        Add("\u2039", _page - 1, _page > 1, "Previous page");
+        var shown = Enumerable.Range(1, pages).Where(n => n == 1 || n == pages || Math.Abs(n - _page) <= 1).ToList();
+        var last = 0;
+        foreach (var n in shown)
+        {
+            if (n - last > 1) Pager.Children.Add(new TextBlock { Text = "\u2026", Foreground = (System.Windows.Media.Brush)FindResource("Muted"), VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(4, 0, 4, 0) });
+            Add(n.ToString(), n, true, $"Page {n}", n == _page);
+            last = n;
+        }
+        Add("\u203A", _page + 1, _page < pages, "Next page");
+        void Add(string label, int target, bool enabled, string name, bool current = false)
+        {
+            var button = new System.Windows.Controls.Button
+            {
+                Content = new TextBlock { Text = label, FontSize = 12, FontWeight = current ? FontWeights.SemiBold : FontWeights.Normal },
+                Style = (Style)FindResource("GalleryButton"), Width = 30, Height = 30, Padding = new Thickness(0), Margin = new Thickness(3, 0, 3, 0),
+                IsEnabled = enabled, Opacity = enabled ? 1 : 0.4, BorderThickness = new Thickness(current ? 1 : 0)
+            };
+            if (current)
+            {
+                button.SetResourceReference(BackgroundProperty, "AccentSoft");
+                button.SetResourceReference(BorderBrushProperty, "Accent");
+                button.SetResourceReference(ForegroundProperty, "AccentText");
+            }
+            else button.Background = System.Windows.Media.Brushes.Transparent;
+            button.SetValue(System.Windows.Automation.AutomationProperties.NameProperty, name);
+            button.Click += (_, _) => { if (target == _page) return; _page = target; ApplyFilter(); };
+            Pager.Children.Add(button);
         }
     }
 
@@ -225,6 +326,9 @@ public partial class GalleryPage : System.Windows.Controls.UserControl
         public string DisplayName { get; }
         public string When { get; }
         public string SizeText { get; }
+        public string TimeText { get; } = "";
+        public string GameTag { get; } = "";
+        public string DetailText { get; } = "";
         string _duration = "…";
         ImageSource? _thumbnail;
 
@@ -258,6 +362,18 @@ public partial class GalleryPage : System.Windows.Controls.UserControl
             SizeText = file.Length < 1024 * 1024
                 ? $"{file.Length / 1024.0:0} KB"
                 : $"{file.Length / 1024.0 / 1024.0:0.0} MB";
+            TimeText = file.LastWriteTime.Date == DateTime.Today ? file.LastWriteTime.ToString("HH:mm") : file.LastWriteTime.ToString("MMM d  HH:mm");
+            GameTag = ShortTag(Game);
+            DetailText = $"{Game} \u00B7 {file.LastWriteTime:MMM d, yyyy HH:mm} \u00B7 {SizeText}";
+        }
+
+        // "Rainbow Six Siege" -> "RSS", "General" -> "GEN", "Overwatch" -> "OVE".
+        internal static string ShortTag(string game)
+        {
+            var words = game.Split([' ', '-', '_', ':'], StringSplitOptions.RemoveEmptyEntries);
+            if (words.Length == 0) return "";
+            var tag = words.Length == 1 ? new string(words[0].Where(char.IsLetterOrDigit).Take(3).ToArray()) : new string(words.Select(w => w[0]).Where(char.IsLetterOrDigit).Take(3).ToArray());
+            return tag.ToUpperInvariant();
         }
 
         public static ClipRow Note(string text) => new(text);
