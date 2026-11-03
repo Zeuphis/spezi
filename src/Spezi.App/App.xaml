@@ -584,6 +584,28 @@
       </Setter>
     </Style>
     <!-- Dark context menus app-wide: no icon gutter, rounded, accent hover. -->
+    <Style TargetType="ToolTip">
+      <Setter Property="Foreground" Value="{StaticResource Ink}"/>
+      <Setter Property="FontSize" Value="12"/>
+      <Setter Property="HasDropShadow" Value="False"/>
+      <Setter Property="OverridesDefaultStyle" Value="True"/>
+      <Setter Property="SnapsToDevicePixels" Value="True"/>
+      <Setter Property="UseLayoutRounding" Value="True"/>
+      <Setter Property="TextOptions.TextFormattingMode" Value="Display"/>
+      <Setter Property="Template">
+        <Setter.Value>
+          <ControlTemplate TargetType="ToolTip">
+            <Border Background="{StaticResource Card}" BorderBrush="{StaticResource Line}" BorderThickness="1" CornerRadius="8" Padding="9,6" MaxWidth="340">
+              <ContentPresenter>
+                <ContentPresenter.Resources>
+                  <Style TargetType="TextBlock"><Setter Property="TextWrapping" Value="Wrap"/><Setter Property="Foreground" Value="{Binding Foreground, RelativeSource={RelativeSource AncestorType=ToolTip}}"/></Style>
+                </ContentPresenter.Resources>
+              </ContentPresenter>
+            </Border>
+          </ControlTemplate>
+        </Setter.Value>
+      </Setter>
+    </Style>
     <Style TargetType="ContextMenu">
       <Setter Property="Foreground" Value="{StaticResource Ink}"/>
       <Setter Property="FontSize" Value="12"/>
