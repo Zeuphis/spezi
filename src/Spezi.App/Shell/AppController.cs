@@ -43,6 +43,12 @@ public sealed class AppController : IDisposable
             StartupRegistration.Apply(Settings.StartWithWindows);
         _recorder.Notice += (_, notice) => Notice?.Invoke(notice);
         _watch = new DispatcherTimerShim(TimeSpan.FromSeconds(2), WatchGame);
+        // Foreground changes arrive as out-of-context WinEvents on this (UI) thread's message loop:
+        // no polling and no extra thread. The timer remains only as a slow fallback.
+        _foregroundProc = (_, _, _, _, _, _, _) => WatchGame();
+        _foregroundHook = SetWinEventHook(EventSystemForeground, EventSystemForeground, IntPtr.Zero, _foregroundProc, 0, 0, WinEventOutOfContext);
+        StateChanged += UpdateWatch;
+        UpdateWatch();
     }
 
     public RecorderSnapshot Snapshot() => _recorder.GetSnapshot();
@@ -206,6 +212,7 @@ public sealed class AppController : IDisposable
     public void StartReplay()
     {
         Run(() => _recorder.StartReplay(Request()));
+        UpdateWatch();
     }
 
     public void StopReplay()
@@ -233,6 +240,7 @@ public sealed class AppController : IDisposable
             return;
         }
         Run(() => _recorder.StartSession(Request()));
+        UpdateWatch();
     }
 
     public async Task StopSession()
@@ -281,9 +289,27 @@ public sealed class AppController : IDisposable
 
     void WatchGame()
     {
+        UpdateWatch();
         if (Settings.AutoReplayWhenPlaying || Snapshot().PipelineRunning)
             WatchGame(GameTitles.Detect(Capture));
     }
+
+    // Poll only when something needs the game title: 2 s while capturing (title tracking),
+    // 10 s while idle (the foreground hook handles auto-replay instantly).
+    void UpdateWatch()
+    {
+        var running = Snapshot().PipelineRunning;
+        if (running) _watch.Run(TimeSpan.FromSeconds(2));
+        else if (Settings.AutoReplayWhenPlaying && _foregroundHook == IntPtr.Zero) _watch.Run(TimeSpan.FromSeconds(2));
+        else _watch.Run(TimeSpan.FromSeconds(10));  // idle: cheap state check + foreground-hook fallback
+    }
+
+    delegate void WinEventProc(IntPtr hook, uint eventType, IntPtr hwnd, int idObject, int idChild, uint thread, uint time);
+    const uint EventSystemForeground = 0x0003, WinEventOutOfContext = 0x0000;
+    readonly WinEventProc _foregroundProc;
+    readonly IntPtr _foregroundHook;
+    [DllImport("user32.dll")] static extern IntPtr SetWinEventHook(uint min, uint max, IntPtr module, WinEventProc proc, uint process, uint thread, uint flags);
+    [DllImport("user32.dll")] static extern bool UnhookWinEvent(IntPtr hook);
 
     internal void WatchGame(string? gameTitle)
     {
@@ -299,6 +325,7 @@ public sealed class AppController : IDisposable
         try
         {
             _recorder.StartReplay(Request(gameTitle));
+            UpdateWatch();
         }
         catch (Exception ex)
         {
@@ -405,6 +432,8 @@ public sealed class AppController : IDisposable
     public void Dispose()
     {
         _watch.Stop();
+        StateChanged -= UpdateWatch;
+        if (_foregroundHook != IntPtr.Zero) UnhookWinEvent(_foregroundHook);
         try
         {
             if (Snapshot().SessionActive)
@@ -467,6 +496,12 @@ sealed class DispatcherTimerShim
         _timer = new System.Windows.Threading.DispatcherTimer { Interval = interval };
         _timer.Tick += (_, _) => tick();
         _timer.Start();
+    }
+
+    public void Run(TimeSpan interval)
+    {
+        if (_timer.Interval != interval) _timer.Interval = interval;
+        if (!_timer.IsEnabled) _timer.Start();
     }
 
     public void Stop() => _timer.Stop();
