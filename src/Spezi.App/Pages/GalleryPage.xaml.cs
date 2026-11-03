@@ -153,6 +153,22 @@ public partial class GalleryPage : System.Windows.Controls.UserControl
             : "Try a different filename or game.";
         BuildPager(pages);
         GalleryScroll.ScrollToTop();
+        // Don't rely on Loaded/DataContextChanged/IsVisibleChanged ordering for reused elements
+        // (e.g. the hero after a delete): once layout settled, load every shown clip explicitly.
+        var generation = _generation;
+        Dispatcher.BeginInvoke(System.Windows.Threading.DispatcherPriority.Loaded, () =>
+        {
+            if (generation != _generation || !IsVisible) return;
+            if (Hero.Visibility == Visibility.Visible && Hero.DataContext is ClipRow hero) EnsureLoaded(hero);
+            foreach (var row in _rows) EnsureLoaded(row);
+        });
+    }
+
+    void EnsureLoaded(ClipRow row)
+    {
+        if (row.Path.Length == 0 || row.Thumbnail != null) return;
+        row.Visible = true;
+        _ = LoadDetailsAsync(row, _generation);
     }
 
     void BuildPager(int pages)
@@ -200,7 +216,7 @@ public partial class GalleryPage : System.Windows.Controls.UserControl
         try
         {
             var details = await ClipCache.GetDetailsAsync(row.Path, DecodeWidth(row), pending.Token);
-            if (generation != _generation || !row.Visible || pending.IsCancellationRequested) return;
+            if (!row.Visible || pending.IsCancellationRequested) return;  // row objects are per scan; Visible alone says it is still shown
             row.DurationText = ClipText.FormatDuration(details.Duration);
             row.Thumbnail = details.Thumbnail;
         }
