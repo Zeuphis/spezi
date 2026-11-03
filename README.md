@@ -18,13 +18,6 @@ Clips and sessions are H.264 video with one AAC audio track. Spezi prefers a har
 
 The `dist` folder remains a self-contained portable build: copy it anywhere and run `Spezi.exe`. See [installer/README.md](installer/README.md) for rebuilding the installer.
 
-## Update to 1.1.1
-
-Finish any recording and exit Spezi from its system tray menu. Run `updater/Spezi-Updater.exe`. It detects an installed Spezi folder automatically; for a portable copy, select the existing folder containing `Spezi.exe`. The update preserves clips and preferences, runs offline and refuses to replace a newer version. Use `Spezi-Setup.exe` for a new installation. See [updater/README.md](updater/README.md) and [the changelog](CHANGELOG.md).
-
-Spezi opens directly on the Recording page, including on first launch. Configure the save folder, quality, hotkeys and audio in **Settings**. There is no separate recording setup wizard during installation or first launch. Existing preferences are preserved. The app and installer use English. Closing the window leaves Spezi running in the system tray. Use the tray menu to exit.
-
-To start Spezi with Windows, enable that option in Settings. The startup entry launches `Spezi.exe --background`.
 
 ## Record
 
