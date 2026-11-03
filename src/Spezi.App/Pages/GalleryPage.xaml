@@ -166,8 +166,9 @@
                     </Grid>
                   </Button>
                   <Grid Margin="1,5,1,0">
-                    <TextBlock Text="{Binding TimeText}" FontSize="11" Foreground="{StaticResource Ink}"/>
-                    <TextBlock Text="{Binding GameTag}" ToolTip="{Binding Game}" FontSize="10.5" Foreground="{StaticResource Muted}" HorizontalAlignment="Right"/>
+                    <Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                    <TextBlock Text="{Binding TimeText}" FontSize="11" Foreground="{StaticResource Ink}" TextWrapping="NoWrap"/>
+                    <TextBlock Grid.Column="1" Text="{Binding Game}" ToolTip="{Binding Game}" FontSize="10.5" Foreground="{StaticResource Muted}" HorizontalAlignment="Right" TextAlignment="Right" TextTrimming="CharacterEllipsis" TextWrapping="NoWrap" Margin="8,0,0,0"/>
                   </Grid>
                 </StackPanel>
                 <DataTemplate.Triggers>

@@ -334,7 +334,6 @@ public partial class GalleryPage : System.Windows.Controls.UserControl
         public string When { get; }
         public string SizeText { get; }
         public string TimeText { get; } = "";
-        public string GameTag { get; } = "";
         public string DetailText { get; } = "";
         string _duration = "…";
         ImageSource? _thumbnail;
@@ -370,17 +369,7 @@ public partial class GalleryPage : System.Windows.Controls.UserControl
                 ? $"{file.Length / 1024.0:0} KB"
                 : $"{file.Length / 1024.0 / 1024.0:0.0} MB";
             TimeText = file.LastWriteTime.Date == DateTime.Today ? file.LastWriteTime.ToString("HH:mm") : file.LastWriteTime.ToString("MMM d  HH:mm");
-            GameTag = ShortTag(Game);
             DetailText = $"{Game} \u00B7 {file.LastWriteTime:MMM d, yyyy HH:mm} \u00B7 {SizeText}";
-        }
-
-        // "Rainbow Six Siege" -> "RSS", "General" -> "GEN", "Overwatch" -> "OVE".
-        internal static string ShortTag(string game)
-        {
-            var words = game.Split([' ', '-', '_', ':'], StringSplitOptions.RemoveEmptyEntries);
-            if (words.Length == 0) return "";
-            var tag = words.Length == 1 ? new string(words[0].Where(char.IsLetterOrDigit).Take(3).ToArray()) : new string(words.Select(w => w[0]).Where(char.IsLetterOrDigit).Take(3).ToArray());
-            return tag.ToUpperInvariant();
         }
 
         public static ClipRow Note(string text) => new(text);
