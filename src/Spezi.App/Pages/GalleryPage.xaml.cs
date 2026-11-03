@@ -199,7 +199,7 @@ public partial class GalleryPage : System.Windows.Controls.UserControl
         row.Pending = pending;
         try
         {
-            var details = await ClipCache.GetDetailsAsync(row.Path, pending.Token);
+            var details = await ClipCache.GetDetailsAsync(row.Path, DecodeWidth(row), pending.Token);
             if (generation != _generation || !row.Visible || pending.IsCancellationRequested) return;
             row.DurationText = ClipText.FormatDuration(details.Duration);
             row.Thumbnail = details.Thumbnail;
@@ -212,6 +212,13 @@ public partial class GalleryPage : System.Windows.Controls.UserControl
             row.Loading = false;
             if (pending.IsCancellationRequested && row.Visible && generation == _generation) _ = LoadDetailsAsync(row, generation);
         }
+    }
+
+    // Hero shows ~620 DIP wide (source is 320 px anyway); grid tiles ~200 DIP.
+    int DecodeWidth(ClipRow row)
+    {
+        var dip = ReferenceEquals(Hero.DataContext, row) ? 640 : 200;
+        return (int)Math.Ceiling(dip * VisualTreeHelper.GetDpi(this).DpiScaleX);
     }
 
     void RowVisible(object sender, RoutedEventArgs e) => ShowRow(sender);

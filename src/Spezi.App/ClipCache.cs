@@ -26,16 +26,16 @@ static class ClipCache
         return Path.Combine(Directory, Convert.ToHexString(SHA1.HashData(Encoding.UTF8.GetBytes(identity))) + ".png");
     }
 
-    static BitmapSource Load(string cachePath)
+    static BitmapSource Load(string cachePath, int width)
     {
         var image = new BitmapImage();
         image.BeginInit();
         image.CacheOption = BitmapCacheOption.OnLoad;
-        image.DecodePixelWidth = PreviewWidth;
+        image.DecodePixelWidth = width;  // decode straight to display size
         image.UriSource = new Uri(cachePath);
         image.EndInit();
         image.Freeze();
-        return Raster(image);
+        return image;  // OnLoad + Freeze: file closed, pixels owned once
     }
 
     static BitmapSource Raster(BitmapSource source)
@@ -62,17 +62,22 @@ static class ClipCache
         }
     }
 
-    public static Task<ClipDetails> GetDetailsAsync(string path, CancellationToken cancellation = default) => Task.Run(async () =>
+    public static Task<ClipDetails> GetDetailsAsync(string path, CancellationToken cancellation = default) => GetDetailsAsync(path, PreviewWidth, cancellation);
+
+    // width: decoded pixel width (clamped to the cached 320 px source).
+    public static Task<ClipDetails> GetDetailsAsync(string path, int width, CancellationToken cancellation = default) => Task.Run(async () =>
     {
         cancellation.ThrowIfCancellationRequested();
-        var cache = FileFor(path);
+        width = Math.Clamp(width, 32, PreviewWidth);
+        var file = FileFor(path);
+        var cache = file + "|" + width;
         if (TryCached(cache, out var cached)) return cached;
         await DecodeGate.WaitAsync(cancellation).ConfigureAwait(false);
         try
         {
             cancellation.ThrowIfCancellationRequested();
             if (TryCached(cache, out cached)) return cached;
-            var details = ReadDetails(path, cache);
+            var details = ReadDetails(path, file, width);
             lock (CacheGate)
             {
                 Memory.Add(cache, (details, Order.AddFirst(cache)));
@@ -90,7 +95,7 @@ static class ClipCache
     public static async Task<BitmapSource?> GetThumbnailAsync(string path, CancellationToken cancellation = default) =>
         (await GetDetailsAsync(path, cancellation).ConfigureAwait(false)).Thumbnail;
 
-    static ClipDetails ReadDetails(string path, string cache)
+    static ClipDetails ReadDetails(string path, string cache, int decodeWidth)
     {
         try { System.IO.Directory.CreateDirectory(Directory); }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException) { AppLog.Error("Preview cache is unavailable.", ex); }
@@ -109,7 +114,7 @@ static class ClipCache
         }
         if (File.Exists(cache))
         {
-            try { return new(duration, Load(cache)); }
+            try { return new(duration, Load(cache, decodeWidth)); }
             catch (Exception ex) { AppLog.Error("Thumbnail cache will be rebuilt: " + path, ex); }
         }
         if (!MediaInspector.TryReadThumbnail(path, out var pixels, out var width, out var height)) return new(duration, null);
@@ -129,6 +134,12 @@ static class ClipCache
         try { using (var stream = File.Create(temporary)) encoder.Save(stream); File.Move(temporary, cache, true); }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException) { AppLog.Error("Preview image could not be cached.", ex); }
         finally { try { if (File.Exists(temporary)) File.Delete(temporary); } catch (Exception ex) when (ex is IOException or UnauthorizedAccessException) { /* incomplete cache file is private */ } }
+        if (decodeWidth < image.PixelWidth)
+        {
+            image = new TransformedBitmap(image, new ScaleTransform(decodeWidth / (double)image.PixelWidth, decodeWidth / (double)image.PixelWidth));
+            image.Freeze();
+            image = Raster(image);
+        }
         return new(duration, image);
     }
 }
