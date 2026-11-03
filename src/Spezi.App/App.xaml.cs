@@ -1,4 +1,4 @@
-﻿using System.Globalization;
+using System.Globalization;
 using System.Threading;
 using System.Windows.Markup;
 using System.Windows;
@@ -9,6 +9,7 @@ public partial class App : System.Windows.Application
 {
     Mutex? _mutex;
     EventWaitHandle? _showEvent;
+    RegisteredWaitHandle? _showWait;
     AppController? _controller;
     MainWindow? _window;
 
@@ -136,8 +137,9 @@ public partial class App : System.Windows.Application
         }
 
         _showEvent = new EventWaitHandle(false, EventResetMode.AutoReset, @"Local\Spezi.Show");
-        var waiter = new Thread(WaitForShow) { IsBackground = true, Name = "Spezi show" };
-        waiter.Start();
+        // Thread-pool wait: no dedicated thread and no periodic wake-ups.
+        _showWait = ThreadPool.RegisterWaitForSingleObject(_showEvent,
+            (_, _) => Dispatcher.BeginInvoke(() => _window?.BringForward()), null, Timeout.Infinite, false);
 
         _controller = new AppController();
         _window = new MainWindow(_controller);
@@ -149,19 +151,11 @@ public partial class App : System.Windows.Application
         _window.CheckForUpdatesOnStartup();
     }
 
-    void WaitForShow()
-    {
-        while (_showEvent != null)
-        {
-            if (!_showEvent.WaitOne(TimeSpan.FromSeconds(2)))
-                continue;
-            Dispatcher.BeginInvoke(() => _window?.BringForward());
-        }
-    }
 
     protected override void OnExit(ExitEventArgs e)
     {
         _controller?.Dispose();
+        _showWait?.Unregister(null);
         _showEvent?.Dispose();
         _mutex?.Dispose();
         base.OnExit(e);
