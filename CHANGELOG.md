@@ -2,6 +2,21 @@
 
 All notable changes to Spezi. The version is defined once in `Directory.Build.props`.
 
+## 1.4.0
+
+- Settings: switching to the Settings tab is instant. Slow queries (encoders, displays, windows, audio devices) run off the UI thread, and the app list only loads while the Audio card is open.
+- New Gallery layout: the latest clip is shown large at the top, game filter chips ("All" plus one per game with counts), a 3-column grid of thumbnails with time, full game name and duration, and pagination with 12 clips per page. Click a tile to play it; right-click for Open, Rename, Open folder and Delete.
+- Resource efficiency:
+  - Thumbnails are decoded at display size and cached on disk; only the current gallery page is loaded, and images of the previous page are released.
+  - Game detection is event-based (foreground window changes) instead of constant 2-second polling while idle.
+  - Timers and animations pause while their page is hidden, the window is minimized or Spezi is in the tray. Settings level meters only run while the Audio card is open.
+  - Memory is trimmed once when Spezi is hidden to the tray and nothing is recording.
+  - One background thread fewer (single-instance signal uses the thread pool).
+- Microphone: new Mono switch (on by default). Off keeps the microphone channels as captured (stereo).
+- Removed the info icon from Audio & microphone.
+- Tooltips are now dark, matching the context menus.
+- Settings footer: new "Check for updates" link with inline status (Checking…, You're up to date, Couldn't check), works even when the startup check is off.
+
 ## 1.3.2
 
 - Fixed context menus (e.g. the clip ... menu in the Gallery): they are now fully dark with rounded corners, no white bar on the left, accent hover and a red Delete item.
