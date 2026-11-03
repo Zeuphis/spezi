@@ -2,6 +2,11 @@
 
 All notable changes to Spezi. The version is defined once in `Directory.Build.props`.
 
+## 1.4.1
+
+- Switching to the Recording tab is instant: the microphone device query runs off the UI thread, recent clip tiles are reused instead of rebuilt, and thumbnails share the Gallery's cache.
+- Fixed a missing thumbnail on the Latest clip in the Gallery after deleting a clip.
+
 ## 1.4.0
 
 - Settings: switching to the Settings tab is instant. Slow queries (encoders, displays, windows, audio devices) run off the UI thread, and the app list only loads while the Audio card is open.
