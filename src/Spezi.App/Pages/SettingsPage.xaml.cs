@@ -78,6 +78,7 @@ public partial class SettingsPage : System.Windows.Controls.UserControl
             void Toggle()
             {
                 expanded = !expanded;
+                if (body.IsAncestorOf(ApplicationAudioPanel)) { _audioExpanded = expanded; if (expanded) BuildApplications(); }
                 System.Windows.Automation.AutomationProperties.SetName(row, title + (expanded ? " (expanded)" : " (collapsed)"));
                 var duration = new Duration(TimeSpan.FromMilliseconds(180));
                 var ease = new System.Windows.Media.Animation.CubicEase { EasingMode = System.Windows.Media.Animation.EasingMode.EaseOut };
@@ -145,7 +146,6 @@ public partial class SettingsPage : System.Windows.Controls.UserControl
         ResolutionBox.ItemsSource = resolutions;
         ResolutionBox.SelectedItem = currentResolution;
         FpsBox.SelectedItem = settings.FrameRate.ToString();
-        LoadSources();
         SoftwareBox.IsChecked = settings.AllowSoftwareEncoder;
         SystemAudioBox.IsChecked = settings.CaptureSystemAudio != false;
         MicBox.IsChecked = settings.RecordMicrophone;
@@ -164,7 +164,42 @@ public partial class SettingsPage : System.Windows.Controls.UserControl
         AutoBox.IsChecked = settings.AutoReplayWhenPlaying;
         _notifications.Load();
         PaintAccentChoice();
-        var hardware = _controller.Encoders();
+        BuildAudio();
+        BuildApplications();
+        _loading = false;
+        _controller.NoteDiskSpace();
+        _ = LoadSlowPartsAsync(++_reloadGeneration);
+    }
+
+    // Slow Windows queries (encoder probe child process, window/display enumeration) run off the UI thread,
+    // so switching to Settings is instant. Stale results from an older Reload are dropped.
+    int _reloadGeneration, _audioGeneration, _appGeneration;
+    bool _audioExpanded;
+
+    async Task LoadSlowPartsAsync(int generation)
+    {
+        IReadOnlyList<EncoderDescription> hardware;
+        IReadOnlyList<DisplayEntry> displays;
+        List<WindowEntry> windows;
+        try
+        {
+            (hardware, displays, windows) = await Task.Run(() => (_controller.Encoders(), _controller.Displays(), _controller.Windows().Take(40).ToList()));
+        }
+        catch (Exception ex) { AppLog.Error("Settings: loading sources/encoders failed.", ex); return; }
+        if (generation != _reloadGeneration) return;
+        var wasLoading = _loading;
+        _loading = true;
+        try
+        {
+            LoadSources(displays, windows);
+            ApplyEncoders(hardware);
+        }
+        finally { _loading = wasLoading; }
+    }
+
+    void ApplyEncoders(IReadOnlyList<EncoderDescription> hardware)
+    {
+        var settings = _controller.Settings;
         EncoderText.Text = hardware.Count == 0
             ? "No hardware encoder detected. Enable software encoding below to record."
             : "Detected hardware encoder: " + string.Join(", ", hardware.Select(e => e.Name));
@@ -178,19 +213,25 @@ public partial class SettingsPage : System.Windows.Controls.UserControl
                 : "No hardware encoder detected. Recording will not start until you enable software encoding under Advanced options.";
             AdvancedOptions.IsExpanded = true;
         }
-        BuildAudio();
-        BuildApplications();
-        _loading = false;
-        _controller.NoteDiskSpace();
     }
 
-    void BuildAudio()
+    async void BuildAudio()
+    {
+        var generation = ++_audioGeneration;
+        IReadOnlyList<AudioDeviceEntry> devices;
+        try { devices = await Task.Run(_controller.AudioDevices); }
+        catch (Exception ex) { AppLog.Error("Settings: audio device scan failed.", ex); return; }
+        if (generation != _audioGeneration) return;
+        ApplyAudio(devices);
+    }
+
+    void ApplyAudio(IReadOnlyList<AudioDeviceEntry> devices)
     {
         AudioList.Children.Clear();
         MicList.Children.Clear();
         var settings = _controller.Settings;
         var selected = settings.OutputDeviceIds.ToHashSet(StringComparer.OrdinalIgnoreCase);
-        foreach (var device in _controller.AudioDevices().Where(d => d.IsMicrophone || settings.AudioMode == AudioCaptureMode.System))
+        foreach (var device in devices.Where(d => d.IsMicrophone || settings.AudioMode == AudioCaptureMode.System))
         {
             var isChecked = device.IsMicrophone
                 ? settings.RecordMicrophone && (settings.MicrophoneId == device.Id || settings.MicrophoneId == null && device.IsDefault)
@@ -284,10 +325,10 @@ public partial class SettingsPage : System.Windows.Controls.UserControl
         Reload();
     }
 
-    void LoadSources()
+    void LoadSources(IReadOnlyList<DisplayEntry> displays, IReadOnlyList<WindowEntry> windows)
     {
         SourceBox.Items.Clear();
-        foreach (var display in _controller.Displays())
+        foreach (var display in displays)
         {
             var choice = new SourceChoice(display.Name + $"  {display.Width}×{display.Height}", display, null);
             SourceBox.Items.Add(choice);
@@ -295,7 +336,7 @@ public partial class SettingsPage : System.Windows.Controls.UserControl
                 display.DeviceName.Equals(_controller.Capture.MonitorDeviceName, StringComparison.OrdinalIgnoreCase))
                 SourceBox.SelectedItem = choice;
         }
-        foreach (var window in _controller.Windows().Take(40))
+        foreach (var window in windows)
         {
             var choice = new SourceChoice(window.Title + "  ·  " + window.ProcessName, null, window);
             SourceBox.Items.Add(choice);
@@ -453,15 +494,40 @@ public partial class SettingsPage : System.Windows.Controls.UserControl
         BuildApplications();
     }
 
+    // Self-tests: fill the audio/app lists and sources synchronously.
+    internal void LoadAudioNow()
+    {
+        _audioExpanded = true;
+        ++_audioGeneration; ++_appGeneration;
+        ApplyAudio(_controller.AudioDevices());
+        if (_controller.Settings.AudioMode == AudioCaptureMode.Applications) ApplyApplications(_controller.AudioApplications());
+        ++_reloadGeneration;
+        var wasLoading = _loading; _loading = true;
+        try { LoadSources(_controller.Displays(), _controller.Windows().Take(40).ToList()); ApplyEncoders(_controller.Encoders()); }
+        finally { _loading = wasLoading; }
+    }
+
     void RefreshAudioApplications(object sender, RoutedEventArgs e) => BuildApplications();
 
-    void BuildApplications()
+    // The app list is only scanned while the (collapsed by default) Audio card is open.
+    async void BuildApplications()
     {
+        var generation = ++_appGeneration;
         ApplicationAudioPanel.Visibility = _controller.Settings.AudioMode == AudioCaptureMode.Applications ? Visibility.Visible : Visibility.Collapsed;
+        if (ApplicationAudioPanel.Visibility != Visibility.Visible) { ApplicationAudioList.Children.Clear(); return; }
+        if (!_audioExpanded) return;
+        IReadOnlyList<AudioApplicationEntry> apps;
+        try { apps = await Task.Run(_controller.AudioApplications); }
+        catch (Exception ex) { AppLog.Error("Settings: audio app scan failed.", ex); return; }
+        if (generation != _appGeneration) return;
+        ApplyApplications(apps);
+    }
+
+    void ApplyApplications(IReadOnlyList<AudioApplicationEntry> apps)
+    {
         ApplicationAudioList.Children.Clear();
-        if (ApplicationAudioPanel.Visibility != Visibility.Visible) return;
         var enabled = _controller.Settings.CaptureSystemAudio != false && _controller.ApplicationAudioSupported;
-        foreach (var app in _controller.AudioApplications())
+        foreach (var app in apps)
         {
             var detail = app.Id == AudioApplicationEntry.GameId ? "Follows your game, even when you switch back to Spezi."
                 : app.IsRunning ? "App is running" : "Capture starts when the app is running.";

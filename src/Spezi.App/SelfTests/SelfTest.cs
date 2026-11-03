@@ -68,6 +68,7 @@ static partial class SelfTest
             var mode = (System.Windows.Controls.ComboBox)settings.FindName("AudioModeBox");
             mode.SelectedIndex = 1;
             Check(controller.Settings.AudioMode == AudioCaptureMode.Applications, "app-only audio mode is selectable");
+            settings.LoadAudioNow();
             var appList = (System.Windows.Controls.StackPanel)settings.FindName("ApplicationAudioList");
             var toggles = appList.Children.OfType<System.Windows.Controls.Border>().Select(b => b.Child).OfType<System.Windows.Controls.Grid>().SelectMany(grid => grid.Children.OfType<System.Windows.Controls.CheckBox>()).ToArray();
             foreach (var toggle in toggles) toggle.IsChecked = toggle.Tag is AudioApplicationEntry app && app.Id is AudioApplicationEntry.DiscordId or AudioApplicationEntry.TeamSpeakId;
@@ -421,6 +422,7 @@ static partial class SelfTest
             window = new System.Windows.Window { Content = page, Width = 460, Height = 780, ShowInTaskbar = false, Title = "Spezi Einstellungen", Background = (System.Windows.Media.Brush)System.Windows.Application.Current.FindResource("Bg") };
             window.Show();
             page.Reload();
+            page.LoadAudioNow();
             PumpUntil(() => false, TimeSpan.FromMilliseconds(250));
             void Capture(string name, System.Windows.FrameworkElement visual)
             {
