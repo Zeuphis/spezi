@@ -29,16 +29,11 @@ public partial class SettingsPage : System.Windows.Controls.UserControl
         _levels.Tick += (_, _) => PaintLevels();
         IsVisibleChanged += (_, _) =>
         {
-            if (IsVisible)
-            {
-                Reload();
-                _levels.Start();
-            }
-            else
-            {
-                _levels.Stop();
-            }
+            if (IsVisible) Reload();
+            UpdateLevels();
         };
+        Loaded += (_, _) => { _host = Window.GetWindow(this); if (_host != null) _host.StateChanged += HostStateChanged; UpdateLevels(); };
+        Unloaded += (_, _) => { if (_host != null) _host.StateChanged -= HostStateChanged; _host = null; UpdateLevels(); };
     }
 
     // Every setting card becomes a collapsible section (header row + chevron). Always starts collapsed.
@@ -78,7 +73,7 @@ public partial class SettingsPage : System.Windows.Controls.UserControl
             void Toggle()
             {
                 expanded = !expanded;
-                if (body.IsAncestorOf(ApplicationAudioPanel)) { _audioExpanded = expanded; if (expanded) BuildApplications(); }
+                if (body.IsAncestorOf(ApplicationAudioPanel)) { _audioExpanded = expanded; if (expanded) BuildApplications(); UpdateLevels(); }
                 System.Windows.Automation.AutomationProperties.SetName(row, title + (expanded ? " (expanded)" : " (collapsed)"));
                 var duration = new Duration(TimeSpan.FromMilliseconds(180));
                 var ease = new System.Windows.Media.Animation.CubicEase { EasingMode = System.Windows.Media.Animation.EasingMode.EaseOut };
@@ -175,6 +170,15 @@ public partial class SettingsPage : System.Windows.Controls.UserControl
     // so switching to Settings is instant. Stale results from an older Reload are dropped.
     int _reloadGeneration, _audioGeneration, _appGeneration;
     bool _audioExpanded;
+    Window? _host;
+    bool _levelsIdle;
+    void HostStateChanged(object? sender, EventArgs e) => UpdateLevels();
+    // Meters live only in the Audio card: tick only while it is open and the window is on screen.
+    void UpdateLevels()
+    {
+        if (IsVisible && _audioExpanded && _host?.WindowState != WindowState.Minimized) { if (!_levels.IsEnabled) { _levelsIdle = false; _levels.Start(); } }
+        else _levels.Stop();
+    }
 
     async Task LoadSlowPartsAsync(int generation)
     {
@@ -277,6 +281,9 @@ public partial class SettingsPage : System.Windows.Controls.UserControl
     void PaintLevels()
     {
         var levels = _controller.Snapshot().Levels;
+        // No audio running: meters were zeroed once, skip the tree walk until levels return.
+        if (levels.Count == 0) { if (_levelsIdle) return; _levelsIdle = true; }
+        else _levelsIdle = false;
         foreach (var row in AudioList.Children.OfType<Border>().Concat(MicList.Children.OfType<Border>()).Concat(ApplicationAudioList.Children.OfType<Border>()).Select(b => b.Child).OfType<Grid>())
         {
             var meter = row.Children.OfType<System.Windows.Controls.ProgressBar>().FirstOrDefault();
@@ -497,7 +504,7 @@ public partial class SettingsPage : System.Windows.Controls.UserControl
     // Self-tests: fill the audio/app lists and sources synchronously.
     internal void LoadAudioNow()
     {
-        _audioExpanded = true;
+        _audioExpanded = true; UpdateLevels();
         ++_audioGeneration; ++_appGeneration;
         ApplyAudio(_controller.AudioDevices());
         if (_controller.Settings.AudioMode == AudioCaptureMode.Applications) ApplyApplications(_controller.AudioApplications());
