@@ -36,15 +36,25 @@ public partial class CapturePage : System.Windows.Controls.UserControl
             {
                 RefreshStatus();
                 RefreshClips();
-                _timer.Start();
             }
             else
             {
-                _timer.Stop();
-                SetPulse(false);
                 _details?.Cancel();
             }
+            UpdateActivity();
         };
+        Loaded += (_, _) => { _host = Window.GetWindow(this); if (_host != null) _host.StateChanged += HostStateChanged; UpdateActivity(); };
+        Unloaded += (_, _) => { if (_host != null) _host.StateChanged -= HostStateChanged; _host = null; UpdateActivity(); };
+    }
+
+    Window? _host;
+    void HostStateChanged(object? sender, EventArgs e) { if (Active) RefreshStatus(); UpdateActivity(); }
+    // Hidden page, tray or minimized window: no timer ticks and no pulse animation.
+    bool Active => IsVisible && _host?.WindowState != WindowState.Minimized;
+    void UpdateActivity()
+    {
+        if (Active) { if (!_timer.IsEnabled) _timer.Start(); }
+        else { _timer.Stop(); SetPulse(false); }
     }
 
     public void Refresh() => RefreshStatus();
@@ -82,7 +92,7 @@ public partial class CapturePage : System.Windows.Controls.UserControl
         if (StatusSub.Text != subtitle) StatusSub.Text = subtitle;
         BufferChipText.Text = Clock(full) + " buffer";
         QualityChipText.Text = $"{settings.Height}p \u00B7 {settings.FrameRate} FPS";
-        SetPulse(on);
+        SetPulse(on && Active);
 
         RecordLabel.Text = snapshot.SessionActive ? "Stop" : "Record";
         RecordButton.SetValue(System.Windows.Automation.AutomationProperties.NameProperty, snapshot.SessionActive ? "Stop recording" : "Start recording");
