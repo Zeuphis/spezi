@@ -204,12 +204,29 @@ public partial class MainWindow : Window
             : snapshot.ReplayActive ? "Spezi · Replay" : "Spezi");
     }
 
+    // In the tray with nothing capturing: return freed UI memory (thumbnails, visuals) to Windows once.
+    // Never while capturing, so the encoder pipeline does not page-fault its working set back in.
+    internal void TrimWhenIdle()
+    {
+        Dispatcher.BeginInvoke(System.Windows.Threading.DispatcherPriority.ApplicationIdle, () =>
+        {
+            if (IsVisible || _controller.Snapshot().PipelineRunning) return;
+            System.Runtime.GCSettings.LargeObjectHeapCompactionMode = System.Runtime.GCLargeObjectHeapCompactionMode.CompactOnce;
+            GC.Collect(2, GCCollectionMode.Optimized, false);
+            SetProcessWorkingSetSize(new IntPtr(-1), -1, -1);
+        });
+    }
+
+    [System.Runtime.InteropServices.DllImport("kernel32.dll")]
+    static extern bool SetProcessWorkingSetSize(IntPtr process, nint minimum, nint maximum);
+
     protected override void OnClosing(CancelEventArgs e)
     {
         if (!_exiting)
         {
             e.Cancel = true;
             Hide();
+            TrimWhenIdle();
             if (!_toldAboutTray)
             {
                 _toldAboutTray = true;

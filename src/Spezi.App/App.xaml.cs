@@ -146,6 +146,7 @@ public partial class App : System.Windows.Application
         _window.Show();
         if (e.Args.Any(a => a.Equals("--background", StringComparison.OrdinalIgnoreCase)))
             _window.Hide();
+        if (!_window.IsVisible) _window.TrimWhenIdle();
 
         _controller.Recover();
         _window.CheckForUpdatesOnStartup();
