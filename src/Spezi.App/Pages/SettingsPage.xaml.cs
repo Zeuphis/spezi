@@ -19,6 +19,7 @@ public partial class SettingsPage : System.Windows.Controls.UserControl
     {
         InitializeComponent();
         MakeSectionsCollapsible();
+        SettingsScroll.PreviewMouseWheel += ChainWheel;
         _controller = controller;
         VersionText.Text = "Spezi v" + AppVersionText();
         _notifications = new(() => _controller.Settings, _controller.Save);
@@ -124,6 +125,31 @@ public partial class SettingsPage : System.Windows.Controls.UserControl
             hit.KeyDown += (_, e) => { if (e.Key is System.Windows.Input.Key.Enter or System.Windows.Input.Key.Space) { Toggle(); e.Handled = true; } };
         }
     }
+
+    // The page owns the wheel: a closed ComboBox (which would otherwise change its selection) or a nested
+    // scroll region that is already at its end must not swallow it. Open dropdown lists keep scrolling themselves.
+    void ChainWheel(object sender, System.Windows.Input.MouseWheelEventArgs e)
+    {
+        for (var d = e.OriginalSource as DependencyObject; d != null && d != SettingsScroll; d = TreeParent(d))
+        {
+            if (d is System.Windows.Controls.ComboBox combo)
+            {
+                if (combo.IsDropDownOpen) return;
+                break;
+            }
+            if (d is ScrollViewer inner && inner.ScrollableHeight > 0)
+            {
+                var atEnd = e.Delta > 0 ? inner.VerticalOffset <= 0 : inner.VerticalOffset >= inner.ScrollableHeight;
+                if (!atEnd) return;
+                break;
+            }
+        }
+        e.Handled = true;
+        SettingsScroll.ScrollToVerticalOffset(SettingsScroll.VerticalOffset - e.Delta * 0.5);
+    }
+
+    static DependencyObject? TreeParent(DependencyObject d) =>
+        d is Visual or System.Windows.Media.Media3D.Visual3D ? VisualTreeHelper.GetParent(d) ?? LogicalTreeHelper.GetParent(d) : LogicalTreeHelper.GetParent(d);
 
     static bool IsInsideButton(DependencyObject source, DependencyObject stop)
     {

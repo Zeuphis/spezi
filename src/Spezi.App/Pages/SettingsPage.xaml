@@ -214,7 +214,7 @@
           <TextBlock x:Name="ApplicationAudioSupportText" Style="{StaticResource SettingLabel}" Margin="0,0,0,6" Visibility="Collapsed"/>
           <StackPanel x:Name="ApplicationAudioPanel" Margin="0,4,0,0" Visibility="Collapsed">
             <Grid Margin="0,0,0,6"><TextBlock x:Name="ApplicationSelectionHint" Style="{StaticResource SettingLabel}" VerticalAlignment="Center" Margin="0,0,70,0"/><Button Content="Refresh" Style="{StaticResource LinkButton}" HorizontalAlignment="Right" Click="RefreshAudioApplications"/></Grid>
-            <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled" MaxHeight="280"><StackPanel x:Name="ApplicationAudioList"/></ScrollViewer>
+            <StackPanel x:Name="ApplicationAudioList"/>
           </StackPanel>
           <StackPanel x:Name="AudioList"/>
           <Border Height="1" Background="{StaticResource Line}" Margin="0,10,0,10"/>
