@@ -77,7 +77,7 @@ internal static class RecordingNames
 {
     public static string Create(string kind, string? gameTitle)
     {
-        var title = string.IsNullOrWhiteSpace(gameTitle) ? "Spezi" : Clean(gameTitle);
+        var title = string.IsNullOrWhiteSpace(gameTitle) ? "Desktop" : Clean(gameTitle);
         return $"{title}_{kind}_{DateTime.Now:yyyy-MM-dd_HH-mm-ss-fff}_{Guid.NewGuid().ToString("N")[..12]}.mp4";
     }
 
