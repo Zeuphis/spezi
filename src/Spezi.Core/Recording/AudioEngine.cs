@@ -291,6 +291,8 @@ internal sealed class AudioEngine : IDisposable
                 timer.WaitFor(readyAt - (_clock?.Now() ?? readyAt));
             if (!_running)
                 break;
+            try
+            {
             Array.Clear(mixed);
             levels.Clear();
             var slots = Volatile.Read(ref _activeSlots);
@@ -332,6 +334,12 @@ internal sealed class AudioEngine : IDisposable
 
             Levels = levels.ToArray();
             PcmReady?.Invoke(pcm, start);
+            }
+            catch (Exception ex)
+            {
+                // An unhandled exception on this background thread would terminate the whole app.
+                AppLog.Error("Audio mix failed; skipping one block.", ex);
+            }
             _mixedFrames += frames;
 
             var target = _clock?.Now() ?? start;

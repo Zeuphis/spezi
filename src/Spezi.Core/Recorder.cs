@@ -473,11 +473,13 @@ public sealed partial class Recorder : IDisposable
         }
     }
 
+    static readonly bool SkipEncode = Environment.GetEnvironmentVariable("SPEZI_SKIP_ENCODE") == "1";
+
     void OnPcm(byte[] pcm, long timestamp)
     {
         try
         {
-            if (Environment.GetEnvironmentVariable("SPEZI_SKIP_ENCODE") == "1")
+            if (SkipEncode)
                 return;
             _audioEncoder?.WritePcm16(pcm, timestamp);
         }
