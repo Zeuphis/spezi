@@ -136,7 +136,9 @@ public partial class MainWindow : Window
             catch (Exception ex)
             {
                 AppLog.Error("Notification could not be shown.", ex);
+                var broken = _toast;
                 _toast = null;
+                try { broken?.Close(); } catch (InvalidOperationException) { }
             }
         }
     }
@@ -151,6 +153,7 @@ public partial class MainWindow : Window
                 _capture.RefreshClips();
             if (status && !_controller.Settings.StatusToasts)
             {
+                AppLog.Info($"Notification skipped (notifications are off): {notice.Kind}.");
                 RefreshTray();
                 return;
             }

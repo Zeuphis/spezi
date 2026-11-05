@@ -141,6 +141,9 @@ sealed class ToastWindow : Window
         _timer.Stop();
         Opacity = 0;
         if (!IsVisible) Show();
+        var handle = new WindowInteropHelper(this).Handle;
+        // A destroyed or never-created handle would leave the toast invisible; let the caller recreate it.
+        if (handle == 0 || !IsWindow(handle)) throw new InvalidOperationException("Toast window handle is not available.");
         Position(screen);
         Opacity = 1;
         _timer.Interval = TimeSpan.FromSeconds(AppSettings.ValidToastDuration(settings?.ToastDurationSeconds ?? DisplayDuration.TotalSeconds));
@@ -171,7 +174,8 @@ sealed class ToastWindow : Window
         var width = (int)Math.Ceiling(Width * scale);
         var height = (int)Math.Ceiling(ActualHeight * scale);
         var gap = (int)Math.Round(EdgeGap * scale);
-        SetWindowPos(handle, new IntPtr(-1), area.Right - width - gap, area.Top + gap, width, height, 0x0010);
+        // SWP_NOACTIVATE | SWP_SHOWWINDOW: re-assert topmost and visibility on every toast.
+        SetWindowPos(handle, new IntPtr(-1), area.Right - width - gap, area.Top + gap, width, height, 0x0050);
     }
 
     protected override void OnSourceInitialized(EventArgs e)
