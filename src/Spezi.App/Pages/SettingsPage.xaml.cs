@@ -58,23 +58,42 @@ public partial class SettingsPage : System.Windows.Controls.UserControl
                 Foreground = (System.Windows.Media.Brush)FindResource("Muted"), VerticalAlignment = VerticalAlignment.Center,
                 Margin = new Thickness(10, 0, 2, 0)
             };
-            var row = new Grid { Background = System.Windows.Media.Brushes.Transparent, Cursor = System.Windows.Input.Cursors.Hand, Focusable = true };
+            var row = new Grid();
             row.ColumnDefinitions.Add(new ColumnDefinition());
             row.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
             row.Children.Add(header);
             Grid.SetColumn(chevron, 1);
             row.Children.Add(chevron);
             var title = header is TextBlock t ? t.Text : FindTitle(header) ?? "Section";
-            System.Windows.Automation.AutomationProperties.SetName(row, title + " (collapsed)");
+            // The whole header strip is the hit target: it extends over the card's 16 px padding,
+            // so clicks anywhere on the collapsed card (not just the title or chevron) toggle it.
+            var pad = card.Padding;
+            var hit = new Border
+            {
+                Child = row, Background = System.Windows.Media.Brushes.Transparent, Cursor = System.Windows.Input.Cursors.Hand,
+                Focusable = true, FocusVisualStyle = null,
+                Margin = new Thickness(-pad.Left, -pad.Top, -pad.Right, -pad.Bottom), Padding = pad,
+                CornerRadius = new CornerRadius(Math.Max(0, card.CornerRadius.TopLeft - 1))
+            };
+            var hover = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromArgb(0x14, 0xFF, 0xFF, 0xFF));
+            hover.Freeze();
+            void Highlight() => hit.Background = hit.IsMouseOver || hit.IsKeyboardFocused ? hover : System.Windows.Media.Brushes.Transparent;
+            hit.MouseEnter += (_, _) => Highlight();
+            hit.MouseLeave += (_, _) => Highlight();
+            hit.GotKeyboardFocus += (_, _) => Highlight();
+            hit.LostKeyboardFocus += (_, _) => Highlight();
+            System.Windows.Automation.AutomationProperties.SetName(hit, title + " (collapsed)");
             var host = new Border { ClipToBounds = true, Child = body, Visibility = Visibility.Collapsed };
-            panel.Children.Add(row);
+            panel.Children.Add(hit);
             panel.Children.Add(host);
             var expanded = false;
             void Toggle()
             {
                 expanded = !expanded;
                 if (body.IsAncestorOf(ApplicationAudioPanel)) { _audioExpanded = expanded; if (expanded) BuildApplications(); UpdateLevels(); }
-                System.Windows.Automation.AutomationProperties.SetName(row, title + (expanded ? " (expanded)" : " (collapsed)"));
+                System.Windows.Automation.AutomationProperties.SetName(hit, title + (expanded ? " (expanded)" : " (collapsed)"));
+                var radius = Math.Max(0, card.CornerRadius.TopLeft - 1);
+                hit.CornerRadius = expanded ? new CornerRadius(radius, radius, 0, 0) : new CornerRadius(radius);
                 var duration = new Duration(TimeSpan.FromMilliseconds(180));
                 var ease = new System.Windows.Media.Animation.CubicEase { EasingMode = System.Windows.Media.Animation.EasingMode.EaseOut };
                 chevron.Text = expanded ? "\uE70E" : "\uE70D";
@@ -101,8 +120,8 @@ public partial class SettingsPage : System.Windows.Controls.UserControl
                 host.BeginAnimation(HeightProperty, animation);
             }
             _sectionToggles.Add(Toggle);
-            row.MouseLeftButtonUp += (_, e) => { if (e.OriginalSource is DependencyObject d && IsInsideButton(d, row)) return; Toggle(); };
-            row.KeyDown += (_, e) => { if (e.Key is System.Windows.Input.Key.Enter or System.Windows.Input.Key.Space) { Toggle(); e.Handled = true; } };
+            hit.MouseLeftButtonUp += (_, e) => { if (e.OriginalSource is DependencyObject d && IsInsideButton(d, hit)) return; Toggle(); e.Handled = true; };
+            hit.KeyDown += (_, e) => { if (e.Key is System.Windows.Input.Key.Enter or System.Windows.Input.Key.Space) { Toggle(); e.Handled = true; } };
         }
     }
 
