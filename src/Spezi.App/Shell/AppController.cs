@@ -135,6 +135,12 @@ public sealed class AppController : IDisposable
         };
     }
 
+    // Live volume changes: apply to the running mix without writing settings to disk.
+    public void ApplyGains()
+    {
+        if (_recorder.IsBusy || _recorder.GetSnapshot().AudioTestActive) _recorder.UpdateGains(Settings);
+    }
+
     public void Save()
     {
         Settings.Clamp();

@@ -25,6 +25,7 @@ public partial class SettingsPage : System.Windows.Controls.UserControl
         _notifications = new(() => _controller.Settings, _controller.Save);
         ToastBox.DataContext = ToastDurationText.DataContext = ToastDurationSlider.DataContext = UpdateCheckBox.DataContext = _notifications;
         Unloaded += (_, _) => HotkeyEditingChanged?.Invoke(false);
+        Unloaded += (_, _) => { if (_gainSave?.IsEnabled == true) { _gainSave.Stop(); _controller.Save(); } };
         FpsBox.ItemsSource = new[] { "30", "60", "120" };
         _levels = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(100) };
         _levels.Tick += (_, _) => PaintLevels();
@@ -301,6 +302,7 @@ public partial class SettingsPage : System.Windows.Controls.UserControl
         var row = new Grid();
         row.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
         row.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(130) });
+        row.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(40) });
         row.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(56) });
         var label = new StackPanel();
         label.Children.Add(new TextBlock { Text = name, FontSize = 11.5, TextWrapping = TextWrapping.NoWrap, TextTrimming = TextTrimming.CharacterEllipsis, ToolTip = name });
@@ -314,14 +316,22 @@ public partial class SettingsPage : System.Windows.Controls.UserControl
         toggle.Checked += toggled;
         toggle.Unchecked += toggled;
         var slider = new Slider { Minimum = 0, Maximum = 200, Value = _controller.Settings.GainFor(id) * 100, Tag = id, IsEnabled = enabled,
-            VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(10, 0, 10, 0), ToolTip = "Recording volume" };
+            VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(10, 0, 6, 0), ToolTip = "Recording volume (double-click for 100%)",
+            SmallChange = 5, LargeChange = 10, IsMoveToPointEnabled = true };
+        System.Windows.Automation.AutomationProperties.SetName(slider, name + " volume");
+        var percent = new TextBlock { Text = $"{slider.Value:0}%", FontSize = 10.5, VerticalAlignment = VerticalAlignment.Center, HorizontalAlignment = System.Windows.HorizontalAlignment.Right, Margin = new Thickness(0, 0, 8, 0) };
+        percent.SetResourceReference(TextBlock.ForegroundProperty, "Muted");
+        slider.ValueChanged += (_, _) => percent.Text = $"{slider.Value:0}%";
         slider.ValueChanged += GainChanged;
+        slider.MouseDoubleClick += (_, _) => slider.Value = 100;
         Grid.SetColumn(slider, 1);
+        Grid.SetColumn(percent, 2);
         var meter = new System.Windows.Controls.ProgressBar { Height = 6, Maximum = 1, Tag = id, VerticalAlignment = VerticalAlignment.Center };
         meter.SetResourceReference(System.Windows.Controls.ProgressBar.ForegroundProperty, "Accent");
-        Grid.SetColumn(meter, 2);
+        Grid.SetColumn(meter, 3);
         row.Children.Add(toggle);
         row.Children.Add(slider);
+        row.Children.Add(percent);
         row.Children.Add(meter);
         var wrapper = new Border { CornerRadius = new CornerRadius(8), Padding = new Thickness(10, 7, 10, 7), Margin = new Thickness(0, 0, 0, 5), Child = row };
         wrapper.SetResourceReference(Border.BackgroundProperty, "Field");
@@ -652,8 +662,20 @@ public partial class SettingsPage : System.Windows.Controls.UserControl
     {
         if (_loading || sender is not Slider slider || slider.Tag is not string id)
             return;
-        _controller.Settings.DeviceGains[id] = slider.Value / 100d;
-        _controller.Save();
+        _controller.Settings.DeviceGains[id] = Math.Round(slider.Value) / 100d;
+        // Apply live to the running mix; write settings once the slider rests.
+        _controller.ApplyGains();
+        _gainSave ??= CreateGainSave();
+        _gainSave.Stop();
+        _gainSave.Start();
+    }
+
+    System.Windows.Threading.DispatcherTimer? _gainSave;
+    System.Windows.Threading.DispatcherTimer CreateGainSave()
+    {
+        var timer = new System.Windows.Threading.DispatcherTimer { Interval = TimeSpan.FromMilliseconds(400) };
+        timer.Tick += (_, _) => { timer.Stop(); _controller.Save(); };
+        return timer;
     }
 
     void StartupChanged(object sender, RoutedEventArgs e)
