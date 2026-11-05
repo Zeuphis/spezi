@@ -13,6 +13,34 @@ public partial class App : System.Windows.Application
     AppController? _controller;
     MainWindow? _window;
 
+    static bool _errorDialogOpen;
+
+    // Crash reports in %LocalAppData%\Spezi\logs; keeps the newest 20.
+    internal static void WriteCrashLog(string title, Exception? exception)
+    {
+        try
+        {
+            var folder = Path.Combine(Path.GetDirectoryName(Spezi.Core.AppLog.FilePath)!, "logs");
+            Directory.CreateDirectory(folder);
+            var file = Path.Combine(folder, $"crash-{DateTime.Now:yyyyMMdd-HHmmss-fff}.log");
+            var process = System.Diagnostics.Process.GetCurrentProcess();
+            File.WriteAllText(file,
+                $"{DateTime.Now:yyyy-MM-dd HH:mm:ss.fff} {title}{Environment.NewLine}" +
+                $"Version: {typeof(App).Assembly.GetName().Version}{Environment.NewLine}" +
+                $"OS: {Environment.OSVersion}{Environment.NewLine}" +
+                $"Uptime: {DateTime.Now - process.StartTime}{Environment.NewLine}" +
+                $"Memory: working set {process.WorkingSet64 / 1048576} MB, private {process.PrivateMemorySize64 / 1048576} MB, handles {process.HandleCount}, threads {process.Threads.Count}{Environment.NewLine}" +
+                $"Thread: {Thread.CurrentThread.Name ?? Environment.CurrentManagedThreadId.ToString()}{Environment.NewLine}{Environment.NewLine}" +
+                exception);
+            foreach (var old in new DirectoryInfo(folder).GetFiles("crash-*.log").OrderByDescending(f => f.Name).Skip(20))
+                old.Delete();
+        }
+        catch
+        {
+            // Crash logging must never throw.
+        }
+    }
+
     protected override void OnStartup(StartupEventArgs e)
     {
         var culture = CultureInfo.GetCultureInfo("en-US");
@@ -24,15 +52,30 @@ public partial class App : System.Windows.Application
             new FrameworkPropertyMetadata(XmlLanguage.GetLanguage("en-US")));
         base.OnStartup(e);
         ShutdownMode = ShutdownMode.OnExplicitShutdown;
+        AppDomain.CurrentDomain.UnhandledException += (_, args) =>
+            WriteCrashLog("Unhandled exception (app terminating: " + args.IsTerminating + ")", args.ExceptionObject as Exception);
+        System.Threading.Tasks.TaskScheduler.UnobservedTaskException += (_, args) =>
+        {
+            Spezi.Core.AppLog.Error("Unobserved background task error.", args.Exception);
+            args.SetObserved();
+        };
         DispatcherUnhandledException += (_, args) =>
         {
             Spezi.Core.AppLog.Error("The window reported an error.", args.Exception);
+            WriteCrashLog("UI error (handled)", args.Exception);
+            args.Handled = true;
+            // One dialog at a time: a repeating error must not stack modal boxes and freeze the app.
+            if (_errorDialogOpen) return;
+            _errorDialogOpen = true;
+            try
+            {
             System.Windows.MessageBox.Show(
                 "Spezi encountered an error. Details are in %LocalAppData%\\Spezi\\spezi.log.",
                 "Spezi",
                 MessageBoxButton.OK,
                 MessageBoxImage.Warning);
-            args.Handled = true;
+            }
+            finally { _errorDialogOpen = false; }
         };
 
 #if SPEZI_SELFTESTS
