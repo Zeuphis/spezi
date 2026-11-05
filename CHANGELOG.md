@@ -2,6 +2,22 @@
 
 All notable changes to Spezi. The version is defined once in `Directory.Build.props`.
 
+## 1.4.2
+
+- **Automatic replay without a game:** with "Start replay automatically" on, replay starts as soon as Spezi launches (for example with Windows), with or without a game, and keeps running until you turn it off. Game detection is only used for clip names and folders and stops completely while replay is off. Clips saved without a game are named `Desktop_Clip_…`.
+- **Favorites:** star clips on gallery tiles (shown on hover, always shown once starred) and on the latest clip. A new "★ Favorites" filter chip. Favorites are stored in `%LocalAppData%\Spezi\favorites.json`; video files are not touched.
+- **Automatic cleanup (off by default):** Settings › Background › "Delete clips older than" 30/60/90/180 days. Old clips go to the Recycle Bin at startup and at most once a day. Favorites are always kept; cached thumbnails are removed and every deletion is logged.
+- **Volume sliders:** each audio source shows its volume in percent (0–200%), double-click resets to 100%, changes apply live while replay runs and are saved once the slider rests.
+- **Gallery:** new clips appear right away while the Gallery is open (save event plus a folder watcher), keeping the current page and filter. "Show in folder" now uses a folder icon.
+- **Settings:** the whole header of each settings card toggles it, with hover and keyboard focus highlight. The page keeps scrolling smoothly over combo boxes and the app list (no nested scroll area).
+- **Notifications:** the clip-saved toast re-asserts itself on top on every notice, a broken toast window is recreated, and skipped toasts are logged.
+- **Stability:**
+  - An error in the audio mix no longer terminates the app; it is logged and one audio block is skipped.
+  - Repeated identical log messages are collapsed and the log rotates at 4 MB, so a recurring error can no longer grow the log or slow recording.
+  - Error dialogs no longer stack up; background task errors are logged.
+  - Crash reports are written to `%LocalAppData%\Spezi\logs\crash-*.log` (newest 20 kept).
+- **Other:** README rewritten; outdated previews folder removed.
+
 ## 1.4.1
 
 - Switching to the Recording tab is instant: the microphone device query runs off the UI thread, recent clip tiles are reused instead of rebuilt, and thumbnails share the Gallery's cache.
