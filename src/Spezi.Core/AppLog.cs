@@ -20,14 +20,28 @@ public static class AppLog
         Write("ERROR", text);
     }
 
+    const long MaxBytes = 4 * 1024 * 1024;
+    static string? _lastMessage;
+    static long _lastAt;
+    static int _repeats;
+
     static void Write(string level, string message)
     {
         try
         {
-            var line = $"{DateTime.Now:yyyy-MM-dd HH:mm:ss.fff} {level} {message}{Environment.NewLine}";
             lock (Gate)
             {
+                // A failure repeating on a hot path (e.g. 50x per second on the audio thread) must not
+                // grow the log without bound or slow the caller: collapse repeats within 10 s.
+                var now = Environment.TickCount64;
+                if (message == _lastMessage && now - _lastAt < 10_000) { _repeats++; return; }
+                var prefix = _repeats > 0 ? $"{DateTime.Now:yyyy-MM-dd HH:mm:ss.fff} INFO (previous message repeated {_repeats} more times){Environment.NewLine}" : "";
+                _lastMessage = message; _lastAt = now; _repeats = 0;
+                var line = prefix + $"{DateTime.Now:yyyy-MM-dd HH:mm:ss.fff} {level} {message}{Environment.NewLine}";
                 Directory.CreateDirectory(Path.GetDirectoryName(FilePath)!);
+                var info = new FileInfo(FilePath);
+                if (info.Exists && info.Length > MaxBytes)
+                    File.Move(FilePath, Path.ChangeExtension(FilePath, ".old.log"), true);
                 File.AppendAllText(FilePath, line, Encoding.UTF8);
             }
         }
