@@ -8,7 +8,7 @@ Video is H.264 with one AAC audio track. Spezi prefers a hardware encoder (NVIDI
 
 - **Replay buffer** – keeps the last 15 seconds to 5 minutes (15-second steps) as already compressed video in memory. While replay is on, the Recording page simply shows *Last X ready to save*. Press the clip hotkey to write that window to disk; replay keeps running.
 - **Recording** – start and stop a continuous session with a hotkey or the Record button, with a live timer. Replay and a session share one capture and one encoder.
-- **Automatic replay** – optionally starts replay when a game comes to the foreground and keeps it running until you turn it off.
+- **Automatic replay** – optionally starts replay as soon as Spezi launches (e.g. with Windows), with or without a game, and keeps it running until you turn it off.
 - **Gallery** – the latest clip is shown large at the top, game filter chips (*All* plus one per game with counts), a 3-column grid with time, game name and duration, and pages of 12 clips. Search by filename or game, sort newest/oldest. Click a tile to play it in your default video player; right-click for Open, Rename, Open folder and Delete.
 - **Audio** – all system audio or only selected apps (e.g. the game and Discord; app-only capture needs Windows build 20348+), plus an optional microphone. Per-source volume and level meters. The microphone is mono by default (centered in both channels); turn **Mono** off to keep its channels as captured.
 - **Game folders** – clips are sorted into one folder per detected game; clips without a game go into *General*.
@@ -22,7 +22,7 @@ Spezi is built to stay out of the way while you play:
 
 - No live preview.
 - Thumbnails are decoded at display size, cached on disk (`%LocalAppData%\Spezi\thumbs`) and only loaded for the visible gallery page.
-- Game detection reacts to foreground-window changes instead of constant polling.
+- Game detection (for clip names and folders) reacts to foreground-window changes and only checks while replay or a recording runs.
 - Timers and animations pause while their page is hidden, the window is minimized or Spezi is in the tray; memory is trimmed once when hidden to the tray and nothing is recording.
 - Hardware encoder detection runs in a short-lived helper process, so GPU driver threads don't stay loaded.
 
