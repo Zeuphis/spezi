@@ -134,7 +134,7 @@
               </StackPanel>
               <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
                 <Button Style="{StaticResource GalleryButton}" Click="OpenItem" ToolTip="Show in folder" AutomationProperties.Name="Show latest clip in folder" Margin="8,0,0,0">
-                  <TextBlock Text="&#xE72D;" FontFamily="Segoe MDL2 Assets" FontSize="13" Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}"/>
+                  <TextBlock Text="&#xE838;" FontFamily="Segoe MDL2 Assets" FontSize="13" Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}"/>
                 </Button>
                 <Button x:Name="ClipMenuButton" Style="{StaticResource GalleryButton}" Click="ShowClipMenu" ToolTip="Clip actions" AutomationProperties.Name="Clip actions" Margin="8,0,0,0" ContextMenu="{StaticResource ClipMenu}">
                   <TextBlock Text="&#xE712;" FontFamily="Segoe MDL2 Assets" FontSize="15" Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}"/>
