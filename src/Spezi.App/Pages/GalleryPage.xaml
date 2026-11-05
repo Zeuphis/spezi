@@ -36,6 +36,23 @@
       <Setter Property="FocusVisualStyle" Value="{StaticResource FocusVisual}"/>
       <Setter Property="Template"><Setter.Value><ControlTemplate TargetType="Button"><ContentPresenter/></ControlTemplate></Setter.Value></Setter>
     </Style>
+    <Style x:Key="StarButton" TargetType="Button">
+      <Setter Property="Cursor" Value="Hand"/>
+      <Setter Property="Foreground" Value="White"/>
+      <Setter Property="Template">
+        <Setter.Value>
+          <ControlTemplate TargetType="Button">
+            <Border x:Name="Bd" Background="#B31B2026" CornerRadius="6" Width="26" Height="26">
+              <TextBlock x:Name="Glyph" Text="&#xE734;" FontFamily="Segoe MDL2 Assets" FontSize="13" Foreground="{TemplateBinding Foreground}" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+            </Border>
+            <ControlTemplate.Triggers>
+              <DataTrigger Binding="{Binding IsFavorite}" Value="True"><Setter TargetName="Glyph" Property="Text" Value="&#xE735;"/><Setter TargetName="Glyph" Property="Foreground" Value="{DynamicResource Accent}"/></DataTrigger>
+              <Trigger Property="IsMouseOver" Value="True"><Setter TargetName="Bd" Property="Background" Value="#E61B2026"/></Trigger>
+            </ControlTemplate.Triggers>
+          </ControlTemplate>
+        </Setter.Value>
+      </Setter>
+    </Style>
     <ContextMenu x:Key="ClipMenu" x:Shared="False" DataContext="{Binding PlacementTarget.DataContext, RelativeSource={RelativeSource Self}}" Placement="Bottom">
       <MenuItem Header="Open in default player" Click="Play"/>
       <MenuItem Header="Rename" Click="Rename"/>
@@ -133,6 +150,11 @@
                 <TextBlock Text="{Binding DetailText}" FontSize="10.5" Foreground="{StaticResource Muted}" TextTrimming="CharacterEllipsis" TextWrapping="NoWrap" Margin="0,3,0,0"/>
               </StackPanel>
               <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
+                <Button Style="{StaticResource GalleryButton}" Click="ToggleFavorite" ToolTip="Favorite" AutomationProperties.Name="Favorite latest clip" Margin="8,0,0,0">
+                  <TextBlock FontFamily="Segoe MDL2 Assets" FontSize="13">
+                    <TextBlock.Style><Style TargetType="TextBlock"><Setter Property="Text" Value="&#xE734;"/><Setter Property="Foreground" Value="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}"/><Style.Triggers><DataTrigger Binding="{Binding IsFavorite}" Value="True"><Setter Property="Text" Value="&#xE735;"/><Setter Property="Foreground" Value="{DynamicResource Accent}"/></DataTrigger></Style.Triggers></Style></TextBlock.Style>
+                  </TextBlock>
+                </Button>
                 <Button Style="{StaticResource GalleryButton}" Click="OpenItem" ToolTip="Show in folder" AutomationProperties.Name="Show latest clip in folder" Margin="8,0,0,0">
                   <TextBlock Text="&#xE838;" FontFamily="Segoe MDL2 Assets" FontSize="13" Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}"/>
                 </Button>
@@ -152,6 +174,7 @@
             <ItemsControl.ItemTemplate>
               <DataTemplate>
                 <StackPanel x:Name="ClipCard" Margin="0,0,8,12" Loaded="RowVisible" Unloaded="RowHidden" DataContextChanged="RowContextChanged" IsVisibleChanged="RowVisibilityChanged">
+                  <Grid>
                   <Button x:Name="PlayButton" Style="{StaticResource PreviewButton}" Click="Play" ToolTip="{Binding DisplayName}" AutomationProperties.Name="{Binding DisplayName}" ContextMenu="{StaticResource ClipMenu}">
                     <Grid>
                       <Viewbox Stretch="Uniform">
@@ -165,6 +188,8 @@
                       <Border Background="#E61B2026" CornerRadius="4" Padding="5,1" HorizontalAlignment="Right" VerticalAlignment="Bottom" Margin="6"><TextBlock Text="{Binding DurationText}" FontSize="10" FontWeight="SemiBold" Foreground="White"/></Border>
                     </Grid>
                   </Button>
+                  <Button x:Name="StarButton" Style="{StaticResource StarButton}" Click="ToggleFavorite" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="6" Opacity="0" ToolTip="Favorite" AutomationProperties.Name="Favorite"/>
+                  </Grid>
                   <Grid Margin="1,5,1,0">
                     <Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
                     <TextBlock Text="{Binding TimeText}" FontSize="11" Foreground="{StaticResource Ink}" TextWrapping="NoWrap"/>
@@ -172,6 +197,9 @@
                   </Grid>
                 </StackPanel>
                 <DataTemplate.Triggers>
+                  <Trigger SourceName="ClipCard" Property="IsMouseOver" Value="True"><Setter TargetName="StarButton" Property="Opacity" Value="1"/></Trigger>
+                  <Trigger SourceName="StarButton" Property="IsKeyboardFocused" Value="True"><Setter TargetName="StarButton" Property="Opacity" Value="1"/></Trigger>
+                  <DataTrigger Binding="{Binding IsFavorite}" Value="True"><Setter TargetName="StarButton" Property="Opacity" Value="1"/></DataTrigger>
                   <Trigger SourceName="PlayButton" Property="IsMouseOver" Value="True"><Setter TargetName="Frame" Property="BorderBrush" Value="{DynamicResource Accent}"/></Trigger>
                   <Trigger SourceName="PlayButton" Property="IsKeyboardFocused" Value="True"><Setter TargetName="Frame" Property="BorderBrush" Value="{DynamicResource Accent}"/></Trigger>
                 </DataTemplate.Triggers>

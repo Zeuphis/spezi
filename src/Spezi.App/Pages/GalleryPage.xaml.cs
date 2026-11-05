@@ -25,6 +25,7 @@ public partial class GalleryPage : System.Windows.Controls.UserControl
     string? _gameFilter;
     string _query = "";
     int _page = 1;
+    const string FavoritesFilter = "\u0001favorites";
     // Live refresh while the gallery is shown: file events are debounced into one rescan.
     readonly System.Windows.Threading.DispatcherTimer _liveDelay = new() { Interval = TimeSpan.FromMilliseconds(700) };
     FileSystemWatcher? _watcher;
@@ -124,7 +125,8 @@ public partial class GalleryPage : System.Windows.Controls.UserControl
                 .OrderBy(file => file.LastWriteTimeUtc);
             if (newestFirst)
                 files = files.OrderByDescending(file => file.LastWriteTimeUtc);
-            return files.Take(400).Select(file => new ClipRow(file, directory)).ToList();
+            Favorites.Prune(directory);
+            return files.Take(400).Select(file => new ClipRow(file, directory) { IsFavorite = Favorites.Contains(directory, file.FullName) }).ToList();
         }, cancellation);
         }
         catch (OperationCanceledException) { return; }
@@ -135,7 +137,7 @@ public partial class GalleryPage : System.Windows.Controls.UserControl
                 _all = result;
                 _query = query;
                 if (!keepPage) _page = 1;
-                if (_gameFilter != null && !_all.Any(row => row.Game.Equals(_gameFilter, StringComparison.OrdinalIgnoreCase))) _gameFilter = null;
+                if (_gameFilter != null && _gameFilter != FavoritesFilter && !_all.Any(row => row.Game.Equals(_gameFilter, StringComparison.OrdinalIgnoreCase))) _gameFilter = null;
                 BuildChips();
                 ApplyFilter();
                 var games = _all.Select(row => row.Game).Distinct(StringComparer.OrdinalIgnoreCase).Count();
@@ -155,6 +157,8 @@ public partial class GalleryPage : System.Windows.Controls.UserControl
         GameChips.Visibility = _all.Count == 0 ? Visibility.Collapsed : Visibility.Visible;
         if (_all.Count == 0) return;
         AddChip("All", null, _all.Count);
+        var favorites = _all.Count(row => row.IsFavorite);
+        if (favorites > 0 || _gameFilter == FavoritesFilter) AddChip("\u2605 Favorites", FavoritesFilter, favorites);
         foreach (var (game, count) in groups) AddChip(game, game, count);
         void AddChip(string label, string? game, int count)
         {
@@ -179,7 +183,9 @@ public partial class GalleryPage : System.Windows.Controls.UserControl
     // Splits the filtered list into the latest-clip hero (page 1, All, no search) and 12-clip pages.
     void ApplyFilter()
     {
-        _filtered = _gameFilter == null ? _all : _all.Where(row => row.Game.Equals(_gameFilter, StringComparison.OrdinalIgnoreCase)).ToList();
+        _filtered = _gameFilter == null ? _all
+            : _gameFilter == FavoritesFilter ? _all.Where(row => row.IsFavorite).ToList()
+            : _all.Where(row => row.Game.Equals(_gameFilter, StringComparison.OrdinalIgnoreCase)).ToList();
         var hasHero = _gameFilter == null && _query.Length == 0 && _newestFirst && _filtered.Count > 0;
         var rest = hasHero ? _filtered.Skip(1).ToList() : _filtered;
         var pages = Math.Max(1, (rest.Count + PageSize - 1) / PageSize);
@@ -344,6 +350,16 @@ public partial class GalleryPage : System.Windows.Controls.UserControl
             VideoLauncher.Open(row.Path, Window.GetWindow(this));
     }
 
+    void ToggleFavorite(object sender, RoutedEventArgs e)
+    {
+        if (RowOf(sender) is not { Path.Length: > 0 } row) return;
+        row.IsFavorite = !row.IsFavorite;
+        Favorites.Set(_controller.Settings.OutputDirectory, row.Path, row.IsFavorite);
+        var page = _page;
+        BuildChips();
+        if (_gameFilter == FavoritesFilter) { _page = page; ApplyFilter(); }
+    }
+
     void Rename(object sender, RoutedEventArgs e)
     {
         if (RowOf(sender) is not { Path.Length: > 0 } row)
@@ -360,7 +376,8 @@ public partial class GalleryPage : System.Windows.Controls.UserControl
             return;
         }
         File.Move(row.Path, destination);
-        RefreshList();
+        Favorites.Move(_controller.Settings.OutputDirectory, row.Path, destination);
+        RefreshList(keepPage: true);
     }
 
     void OpenItem(object sender, RoutedEventArgs e)
@@ -376,7 +393,8 @@ public partial class GalleryPage : System.Windows.Controls.UserControl
         if (System.Windows.MessageBox.Show($"Delete “{row.Name}”?", "Spezi", MessageBoxButton.OKCancel, MessageBoxImage.Warning) != MessageBoxResult.OK)
             return;
         File.Delete(row.Path);
-        RefreshList();
+        Favorites.Set(_controller.Settings.OutputDirectory, row.Path, false);
+        RefreshList(keepPage: true);
     }
 
     static void OpenFolder(string path)
@@ -439,6 +457,13 @@ public partial class GalleryPage : System.Windows.Controls.UserControl
         }
 
         public static ClipRow Note(string text) => new(text);
+
+        bool _favorite;
+        public bool IsFavorite
+        {
+            get => _favorite;
+            set { if (_favorite == value) return; _favorite = value; PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(IsFavorite))); }
+        }
 
         public string DurationText
         {
