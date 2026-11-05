@@ -150,7 +150,10 @@ public partial class MainWindow : Window
             var status = notice.Kind is NoticeKind.ReplayStarted or NoticeKind.ReplayStopped or NoticeKind.ClipSaved
                 or NoticeKind.SessionStarted or NoticeKind.SessionStopped;
             if (notice.Kind is NoticeKind.ClipSaved or NoticeKind.SessionStopped or NoticeKind.RecoveredRecording)
+            {
                 _capture.RefreshClips();
+                if (Body.Content == _gallery) _gallery.NotifyLibraryChanged();
+            }
             if (status && !_controller.Settings.StatusToasts)
             {
                 AppLog.Info($"Notification skipped (notifications are off): {notice.Kind}.");

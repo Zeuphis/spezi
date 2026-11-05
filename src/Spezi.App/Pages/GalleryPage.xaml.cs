@@ -25,6 +25,9 @@ public partial class GalleryPage : System.Windows.Controls.UserControl
     string? _gameFilter;
     string _query = "";
     int _page = 1;
+    // Live refresh while the gallery is shown: file events are debounced into one rescan.
+    readonly System.Windows.Threading.DispatcherTimer _liveDelay = new() { Interval = TimeSpan.FromMilliseconds(700) };
+    FileSystemWatcher? _watcher;
 
     // Self-tests: every clip matching search + game filter, in display order (hero first).
     internal IReadOnlyList<ClipRow> FilteredRows => _filtered;
@@ -36,8 +39,11 @@ public partial class GalleryPage : System.Windows.Controls.UserControl
         Clips.ItemsSource = _rows;
         Directory.CreateDirectory(ClipCache.Directory);
         _searchDelay.Tick += (_, _) => { _searchDelay.Stop(); RefreshList(); };
+        _liveDelay.Tick += (_, _) => { _liveDelay.Stop(); RefreshList(keepPage: true); };
+        Loaded += (_, _) => StartWatcher();
         Unloaded += (_, _) =>
         {
+            StopWatcher();
             _generation++;
             _searchDelay.Stop();
             _scan?.Cancel();
@@ -46,7 +52,50 @@ public partial class GalleryPage : System.Windows.Controls.UserControl
         };
     }
 
-    public void RefreshList()
+    void StartWatcher()
+    {
+        StopWatcher();
+        var directory = _controller.Settings.OutputDirectory;
+        if (!Directory.Exists(directory)) return;
+        try
+        {
+            var watcher = new FileSystemWatcher(directory)
+            {
+                IncludeSubdirectories = true,
+                NotifyFilter = NotifyFilters.FileName | NotifyFilters.DirectoryName
+            };
+            FileSystemEventHandler changed = (_, _) => Dispatcher.BeginInvoke(QueueLiveRefresh);
+            watcher.Created += changed;
+            watcher.Deleted += changed;
+            watcher.Renamed += (_, _) => Dispatcher.BeginInvoke(QueueLiveRefresh);
+            watcher.Error += (_, e) => AppLog.Error("Gallery folder watcher failed.", e.GetException());
+            watcher.EnableRaisingEvents = true;
+            _watcher = watcher;
+        }
+        catch (Exception ex) when (ex is ArgumentException or IOException or UnauthorizedAccessException)
+        {
+            AppLog.Error("Gallery folder watcher could not start.", ex);
+        }
+    }
+
+    void StopWatcher()
+    {
+        _liveDelay.Stop();
+        _watcher?.Dispose();
+        _watcher = null;
+    }
+
+    void QueueLiveRefresh()
+    {
+        if (_watcher == null) return;
+        _liveDelay.Stop();
+        _liveDelay.Start();
+    }
+
+    // Called by the save pipeline (clip saved / recording stopped) while the gallery is open.
+    public void NotifyLibraryChanged() { if (IsLoaded) QueueLiveRefresh(); else RefreshList(keepPage: true); }
+
+    public void RefreshList(bool keepPage = false)
     {
         var generation = ++_generation;
         _searchDelay.Stop();
@@ -57,7 +106,8 @@ public partial class GalleryPage : System.Windows.Controls.UserControl
         var directory = _controller.Settings.OutputDirectory;
         var query = SearchBox.Text.Trim();
         var newestFirst = _newestFirst;
-        LibraryText.Text = "Loading clips\u2026";
+        if (IsLoaded && !string.Equals(_watcher?.Path, directory, StringComparison.OrdinalIgnoreCase)) StartWatcher();
+        if (!keepPage) LibraryText.Text = "Loading clips\u2026";
         _ = PopulateAsync();
         async Task PopulateAsync()
         {
@@ -84,7 +134,7 @@ public partial class GalleryPage : System.Windows.Controls.UserControl
                 if (generation != _generation) return;
                 _all = result;
                 _query = query;
-                _page = 1;
+                if (!keepPage) _page = 1;
                 if (_gameFilter != null && !_all.Any(row => row.Game.Equals(_gameFilter, StringComparison.OrdinalIgnoreCase))) _gameFilter = null;
                 BuildChips();
                 ApplyFilter();
