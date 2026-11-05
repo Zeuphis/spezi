@@ -16,7 +16,7 @@ static partial class SelfTest
         {
             using var controller = new AppController(new AppSettings
             {
-                OutputDirectory = directory, AutoReplayWhenPlaying = true, StatusToasts = false,
+                SetupCompleted = true, OutputDirectory = directory, AutoReplayWhenPlaying = true, StatusToasts = false,
                 Width = 1280, Height = 720, FrameRate = 30, ReplaySeconds = 30,
                 AllowSoftwareEncoder = false, CaptureCursor = false
             }, false, false);
@@ -31,11 +31,12 @@ static partial class SelfTest
             };
             controller.SelectMonitor(controller.Displays().First(d => d.IsPrimary));
             controller.WatchGame(null);
-            Check(!controller.Snapshot().ReplayActive, "Auto-start waits for a game before starting an idle replay");
-            controller.WatchGame("Overwatch");
+            Check(!controller.Snapshot().ReplayActive, "Game detection alone never starts replay");
+            controller.StartAutoReplay();
             Thread.Sleep(1600);
             var before = controller.Snapshot();
-            Check(before.ReplayActive && before.ReplayBuffered.TotalSeconds > 0.4, "A detected game automatically starts real screen capture");
+            Check(before.ReplayActive && before.ReplayBuffered.TotalSeconds > 0.4, "Automatic replay starts at launch without a game");
+            controller.WatchGame("Overwatch");
             // Poll the actual controller with no foreground game for longer than
             // the former four-poll timeout. Capture and encoding remain real.
             for (var i = 0; i < 5; i++)
@@ -64,8 +65,8 @@ static partial class SelfTest
             controller.StopReplay();
             Check(!controller.Snapshot().ReplayActive && !controller.Snapshot().PipelineRunning && stops == 1,
                 "Explicitly turning replay off still stops screen capture");
-            controller.WatchGame("Overwatch");
-            Check(!controller.Snapshot().ReplayActive, "Disabled auto-start leaves replay off even when a game is detected");
+            controller.StartAutoReplay();
+            Check(!controller.Snapshot().ReplayActive, "Disabled auto-start leaves replay off at launch");
             controller.StartReplay();
             controller.WatchGame(null);
             Check(controller.Snapshot().ReplayActive, "Manually enabled replay also remains active on the desktop");

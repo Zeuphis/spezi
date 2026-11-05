@@ -622,6 +622,7 @@ public partial class SettingsPage : System.Windows.Controls.UserControl
             return;
         _controller.Settings.AutoReplayWhenPlaying = AutoBox.IsChecked == true;
         _controller.Save();
+        _controller.StartAutoReplay();
     }
 
     void ChooseAccent(object sender, RoutedEventArgs e)

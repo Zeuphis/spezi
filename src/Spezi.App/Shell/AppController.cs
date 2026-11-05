@@ -290,7 +290,7 @@ public sealed class AppController : IDisposable
     void WatchGame()
     {
         UpdateWatch();
-        if (Settings.AutoReplayWhenPlaying || Snapshot().PipelineRunning)
+        if (Snapshot().PipelineRunning)
             WatchGame(GameTitles.Detect(Capture));
     }
 
@@ -300,8 +300,7 @@ public sealed class AppController : IDisposable
     {
         var running = Snapshot().PipelineRunning;
         if (running) _watch.Run(TimeSpan.FromSeconds(2));
-        else if (Settings.AutoReplayWhenPlaying && _foregroundHook == IntPtr.Zero) _watch.Run(TimeSpan.FromSeconds(2));
-        else _watch.Run(TimeSpan.FromSeconds(10));  // idle: cheap state check + foreground-hook fallback
+        else _watch.Stop();  // idle: nothing needs the game title
     }
 
     delegate void WinEventProc(IntPtr hook, uint eventType, IntPtr hwnd, int idObject, int idChild, uint thread, uint time);
@@ -315,22 +314,19 @@ public sealed class AppController : IDisposable
     {
         var snapshot = Snapshot();
         if (snapshot.AudioTestActive) return;
-        if (!snapshot.PipelineRunning && !Settings.AutoReplayWhenPlaying) return;
+        // Game detection only tags clips; automatic replay starts at launch (StartAutoReplay).
         if (snapshot.PipelineRunning)
             _recorder.UpdateGameTitle(gameTitle);
-        // Automatic replay controls starting only. Losing foreground game focus
-        // must never stop capture or erase the already compressed replay buffer.
-        if (!Settings.AutoReplayWhenPlaying || gameTitle == null || snapshot.PipelineRunning)
-            return;
-        try
-        {
-            _recorder.StartReplay(Request(gameTitle));
-            UpdateWatch();
-        }
-        catch (Exception ex)
-        {
-            Report(ex);
-        }
+    }
+
+    // Automatic replay: start right away when Spezi launches (or the setting is turned on),
+    // with or without a game, and keep running until the user turns replay off.
+    public void StartAutoReplay()
+    {
+        if (!Settings.AutoReplayWhenPlaying || !Settings.SetupCompleted) return;
+        var snapshot = Snapshot();
+        if (snapshot.ReplayActive || snapshot.AudioTestActive) return;
+        StartReplay();
     }
 
     static bool ForegroundLooksLikeGame()

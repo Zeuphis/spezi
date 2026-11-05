@@ -192,6 +192,7 @@ public partial class App : System.Windows.Application
         if (!_window.IsVisible) _window.TrimWhenIdle();
 
         _controller.Recover();
+        _controller.StartAutoReplay();
         _window.CheckForUpdatesOnStartup();
     }
 
