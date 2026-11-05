@@ -153,6 +153,7 @@ public partial class MainWindow : Window
             {
                 _capture.RefreshClips();
                 if (Body.Content == _gallery) _gallery.NotifyLibraryChanged();
+                if (notice.Kind == NoticeKind.ClipSaved) ClipCleanup.RunIfDue(_controller.Settings);
             }
             if (status && !_controller.Settings.StatusToasts)
             {

@@ -193,6 +193,7 @@ public partial class App : System.Windows.Application
 
         _controller.Recover();
         _controller.StartAutoReplay();
+        ClipCleanup.RunIfDue(_controller.Settings, force: true);
         _window.CheckForUpdatesOnStartup();
     }
 

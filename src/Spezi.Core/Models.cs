@@ -70,6 +70,8 @@ public sealed class AppSettings
     public bool AutoReplayWhenPlaying { get; set; }
     public bool StatusToasts { get; set; } = true;
     public bool CheckForUpdatesOnStartup { get; set; } = true;
+    public bool AutoDeleteOldClips { get; set; }
+    public int DeleteClipsOlderThanDays { get; set; } = 90;
     public double ToastDurationSeconds { get; set; } = 3.5;
     public const string DefaultAccentColor = "#5CDBA6";
     public string AccentColor { get; set; } = DefaultAccentColor;
@@ -89,6 +91,7 @@ public sealed class AppSettings
         AudioApplicationIds = (AudioApplicationIds ?? []).Where(id => !string.IsNullOrWhiteSpace(id))
             .Distinct(StringComparer.OrdinalIgnoreCase).Take(32).ToList();
         ToastDurationSeconds = ValidToastDuration(ToastDurationSeconds);
+        DeleteClipsOlderThanDays = ValidCleanupDays(DeleteClipsOlderThanDays);
         AccentColor = ValidAccentColor(AccentColor);
         Width = MakeEven(Math.Clamp(Width, 640, 3840));
         Height = MakeEven(Math.Clamp(Height, 360, 2160));
@@ -110,6 +113,9 @@ public sealed class AppSettings
 
     public static string ReplayDurationText(int seconds) => seconds < 60 ? $"{seconds}s" : seconds % 60 == 0
         ? $"{seconds / 60}m" : $"{seconds / 60}m {seconds % 60}s";
+
+    public static readonly int[] CleanupDayChoices = [30, 60, 90, 180];
+    public static int ValidCleanupDays(int days) => CleanupDayChoices.Contains(days) ? days : 90;
 
     public static double ValidToastDuration(double value) => double.IsFinite(value) ? Math.Clamp(value, 1, 15) : 3.5;
 

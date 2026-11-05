@@ -204,6 +204,9 @@ public partial class SettingsPage : System.Windows.Controls.UserControl
         HotkeyError.Text = _controller.HotkeyErrorText;
         StartupBox.IsChecked = settings.StartWithWindows;
         AutoBox.IsChecked = settings.AutoReplayWhenPlaying;
+        CleanupBox.IsChecked = settings.AutoDeleteOldClips;
+        CleanupDaysBox.SelectedIndex = Array.IndexOf(AppSettings.CleanupDayChoices, AppSettings.ValidCleanupDays(settings.DeleteClipsOlderThanDays));
+        CleanupDaysBox.IsEnabled = settings.AutoDeleteOldClips;
         _notifications.Load();
         PaintAccentChoice();
         BuildAudio();
@@ -668,6 +671,19 @@ public partial class SettingsPage : System.Windows.Controls.UserControl
         _controller.Settings.AutoReplayWhenPlaying = AutoBox.IsChecked == true;
         _controller.Save();
         _controller.StartAutoReplay();
+    }
+
+    void CleanupChanged(object sender, RoutedEventArgs e)
+    {
+        if (_loading || CleanupDaysBox == null || CleanupBox == null)
+            return;
+        var enabled = CleanupBox.IsChecked == true;
+        CleanupDaysBox.IsEnabled = enabled;
+        _controller.Settings.AutoDeleteOldClips = enabled;
+        if (CleanupDaysBox.SelectedItem is System.Windows.Controls.ComboBoxItem { Tag: string tag } && int.TryParse(tag, out var days))
+            _controller.Settings.DeleteClipsOlderThanDays = days;
+        _controller.Save();
+        if (enabled) ClipCleanup.RunIfDue(_controller.Settings, force: true);
     }
 
     void ChooseAccent(object sender, RoutedEventArgs e)
