@@ -130,7 +130,9 @@ sealed class FramePump : IDisposable
                 }
                 finally { newest?.Dispose(); }
 
-                var timestamp = _clock.Now();
+                // Stamp the scheduled tick, not the time after conversion: GPU or lock
+                // delays then no longer turn into uneven frame spacing in the clip.
+                var timestamp = next;
                 if (_cachedNv12 != null)
                 {
                     var queued = true;
@@ -150,12 +152,15 @@ sealed class FramePump : IDisposable
                     AppLog.Error("Frame conversion failed.", ex);
             }
             next += duration;
-            // Preserve real time when capture is late instead of submitting a catch-up burst.
+            // When capture fell a whole frame behind, skip the missed ticks instead of
+            // submitting a catch-up burst. Stay on the frame grid so timestamps keep
+            // exact multiples of the frame duration; the next tick runs right away.
             var after = _clock.Now();
             if (after >= next + duration)
             {
-                _stats.Add(after, 0, (int)Math.Min(int.MaxValue, (after - next) / duration + 1), 0);
-                next = after + duration;
+                var behind = (after - next) / duration;
+                next += behind * duration;
+                _stats.Add(next, 0, (int)Math.Min(int.MaxValue, behind), 0);
             }
         }
     }
