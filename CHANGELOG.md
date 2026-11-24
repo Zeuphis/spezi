@@ -2,6 +2,11 @@
 
 All notable changes to Spezi. The version is defined once in `Directory.Build.props`.
 
+## Unreleased
+
+- **Smoother clips under GPU load (for example while streaming with OBS):** frames are timestamped on an exact 60 fps grid instead of the moment their conversion finished, so GPU or encoder delays no longer cause uneven frame spacing. When capture falls a whole frame behind, the missed frames are skipped cleanly instead of shifting the timing.
+- **Clip diagnostics:** every saved clip writes one line to `spezi.log`, e.g. `Clip stats: 3600 frames, 12 dup, 0 dropped (0 late, 0 encoder), max gap 17 ms`. Stopping the pipeline logs the encoder's dropped frames. Nothing is counted on healthy frames, so this costs no extra work.
+
 ## 1.4.2
 
 - **Automatic replay without a game:** with "Start replay automatically" on, replay starts as soon as Spezi launches (for example with Windows), with or without a game, and keeps running until you turn it off. Game detection is only used for clip names and folders and stops completely while replay is off. Clips saved without a game are named `Desktop_Clip_…`.
