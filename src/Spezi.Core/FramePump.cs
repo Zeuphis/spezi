@@ -14,6 +14,7 @@ sealed class FramePump : IDisposable
     readonly ColorConverter _converter;
     readonly H264Encoder _encoder;
     readonly MediaClock _clock;
+    readonly FrameStats _stats;
     readonly RecordingRequest _request;
     readonly Action _closed;
     readonly Action _captured;
@@ -30,12 +31,13 @@ sealed class FramePump : IDisposable
     int _loggedFrame;
     static int SurfaceQueryFailures;
 
-    public FramePump(GraphicsDevice graphics, ColorConverter converter, H264Encoder encoder, MediaClock clock, RecordingRequest request, Action closed, Action captured)
+    public FramePump(GraphicsDevice graphics, ColorConverter converter, H264Encoder encoder, MediaClock clock, FrameStats stats, RecordingRequest request, Action closed, Action captured)
     {
         _graphics = graphics;
         _converter = converter;
         _encoder = encoder;
         _clock = clock;
+        _stats = stats;
         _request = request;
         _closed = closed;
         _captured = captured;
@@ -89,6 +91,7 @@ sealed class FramePump : IDisposable
                 timer.WaitFor(next - now);
                 continue;
             }
+            var fresh = false;
             try
             {
                 Direct3D11CaptureFrame? newest = null;
@@ -119,6 +122,7 @@ sealed class FramePump : IDisposable
                             var converted = _converter.Convert(texture);
                             _cachedNv12?.Dispose();
                             _cachedNv12 = converted;
+                            fresh = true;
                             if (!_encoder.IsHardware)
                                 _cachedBytes = _converter.ReadNv12(converted);
                         }
@@ -129,10 +133,14 @@ sealed class FramePump : IDisposable
                 var timestamp = _clock.Now();
                 if (_cachedNv12 != null)
                 {
+                    var queued = true;
                     if (_encoder.IsHardware)
-                        _encoder.SubmitTexture(_cachedNv12.QueryInterface<ID3D11Texture2D>(), timestamp, false);
+                        queued = _encoder.SubmitTexture(_cachedNv12.QueryInterface<ID3D11Texture2D>(), timestamp, false);
                     else if (_cachedBytes != null)
-                        _encoder.SubmitNv12(_cachedBytes, timestamp, false);
+                        queued = _encoder.SubmitNv12(_cachedBytes, timestamp, false);
+                    // Only problems are recorded, so a healthy frame costs nothing here.
+                    if (!fresh || !queued)
+                        _stats.Add(timestamp, fresh ? 0 : 1, 0, queued ? 0 : 1);
                     _captured();
                 }
             }
@@ -143,8 +151,12 @@ sealed class FramePump : IDisposable
             }
             next += duration;
             // Preserve real time when capture is late instead of submitting a catch-up burst.
-            if (_clock.Now() >= next + duration)
-                next = _clock.Now() + duration;
+            var after = _clock.Now();
+            if (after >= next + duration)
+            {
+                _stats.Add(after, 0, (int)Math.Min(int.MaxValue, (after - next) / duration + 1), 0);
+                next = after + duration;
+            }
         }
     }
 

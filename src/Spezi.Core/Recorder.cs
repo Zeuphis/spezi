@@ -22,6 +22,7 @@ public sealed partial class Recorder : IDisposable
     SegmentedSession? _session;
     Task<string?>? _sessionStopTask;
     MediaClock? _clock;
+    FrameStats? _frameStats;
     RecordingRequest? _request;
     bool _replayEnabled;
     bool _sessionEnabled;
@@ -113,6 +114,7 @@ public sealed partial class Recorder : IDisposable
         IMFMediaType? videoType;
         IMFMediaType? audioType;
         string directory;
+        FrameStats? stats;
         lock (_gate)
         {
             if (!_replayEnabled)
@@ -120,6 +122,7 @@ public sealed partial class Recorder : IDisposable
             (video, audio, buffered) = _replay.Snapshot();
             videoType = CloneType(_videoEncoder?.OutputType);
             audioType = CloneType(_audioEncoder?.OutputType);
+            stats = _frameStats;
             directory = _request?.Settings.OutputDirectory ?? SettingsStore.Load().OutputDirectory;
             gameTitle ??= video.Length > 0 && _gameLastSeen >= video[0].Timestamp ? _replayGameTitle : null;
         }
@@ -142,6 +145,7 @@ public sealed partial class Recorder : IDisposable
                 var pendingPath = PendingPath(path);
                 WritePackets(pendingPath, videoType, audioType, video, audio);
                 File.Move(pendingPath, path);
+                AppLog.Info(DescribeClip(video, stats));
                 Raise(NoticeKind.ClipSaved, $"Clip saved ({FormatDuration(buffered)}).", path);
                 return (string?)path;
             }
@@ -348,6 +352,7 @@ public sealed partial class Recorder : IDisposable
 
         _graphics = GraphicsDevice.CreateForMonitor(display.MonitorHandle);
         _clock = new MediaClock();
+        _frameStats = new FrameStats();
         _converter = new ColorConverter(_graphics.Device, _graphics.Context);
         _videoEncoder = new H264Encoder();
         _videoEncoder.Packet += OnVideoPacket;
@@ -369,7 +374,7 @@ public sealed partial class Recorder : IDisposable
             _audio.Start(request.Settings, _clock, request.Capture);
         if (isolate is "all" or "video")
         {
-            _pump = new FramePump(_graphics, _converter, _videoEncoder, _clock, request, OnSourceClosed, () => Interlocked.Increment(ref _captureWindowCount));
+            _pump = new FramePump(_graphics, _converter, _videoEncoder, _clock, _frameStats, request, OnSourceClosed, () => Interlocked.Increment(ref _captureWindowCount));
             _pump.Start(window, display.MonitorHandle);
         }
         _pipeline = true;
@@ -385,6 +390,7 @@ public sealed partial class Recorder : IDisposable
         AacEncoder? audioEncoder;
         ColorConverter? converter;
         GraphicsDevice? graphics;
+        FrameStats? stats;
         lock (_gate)
         {
             pump = _pump;
@@ -392,7 +398,9 @@ public sealed partial class Recorder : IDisposable
             audioEncoder = _audioEncoder;
             converter = _converter;
             graphics = _graphics;
+            stats = _frameStats;
             _pump = null;
+            _frameStats = null;
             _videoEncoder = null;
             _audioEncoder = null;
             _converter = null;
@@ -404,6 +412,11 @@ public sealed partial class Recorder : IDisposable
         try { pump?.Dispose(); } catch (Exception ex) { AppLog.Error("Capture stop failed.", ex); }
         try { _audio.Stop(); } catch (Exception ex) { AppLog.Error("Audio stop failed.", ex); }
         try { video?.DrainAndStop(); } catch (Exception ex) { AppLog.Error("Encoder drain failed.", ex); }
+        if (video != null && stats != null)
+        {
+            var totals = stats.Totals;
+            AppLog.Info($"Capture stats: encoder dropped {video.DroppedFrames} frames, {totals.Duplicated} duplicated, {totals.Late} late.");
+        }
         try { audioEncoder?.DrainAndStop(); } catch (Exception ex) { AppLog.Error("Audio encoder drain failed.", ex); }
         try { audioEncoder?.Dispose(); } catch (Exception ex) { AppLog.Error("Audio encoder dispose failed.", ex); }
         try { converter?.Dispose(); } catch (Exception ex) { AppLog.Error("Color converter dispose failed.", ex); }

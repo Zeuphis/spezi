@@ -94,12 +94,13 @@ internal sealed class H264Encoder : IDisposable
 
     public void RequestKeyframe() => Interlocked.Exchange(ref _forceKeyframe, 1);
 
-    public void SubmitTexture(ID3D11Texture2D texture, long timestamp, bool forceKeyframe)
+    // Returns false only when the frame was dropped because the encoder queue was full.
+    public bool SubmitTexture(ID3D11Texture2D texture, long timestamp, bool forceKeyframe)
     {
         if (!_running || !_hardware)
         {
             texture.Dispose();
-            return;
+            return true;
         }
         lock (_queueGate)
         {
@@ -107,27 +108,30 @@ internal sealed class H264Encoder : IDisposable
             {
                 DroppedFrames++;
                 texture.Dispose();
-                return;
+                return false;
             }
             _queue.Enqueue(new PendingFrame(texture, null, timestamp, forceKeyframe));
         }
         _signal.Set();
+        return true;
     }
 
-    public void SubmitNv12(byte[] nv12, long timestamp, bool forceKeyframe)
+    // Returns false only when the frame was dropped because the encoder queue was full.
+    public bool SubmitNv12(byte[] nv12, long timestamp, bool forceKeyframe)
     {
         if (!_running || _hardware)
-            return;
+            return true;
         lock (_queueGate)
         {
             if (_queue.Count >= 3)
             {
                 DroppedFrames++;
-                return;
+                return false;
             }
             _queue.Enqueue(new PendingFrame(null, nv12, timestamp, forceKeyframe));
         }
         _signal.Set();
+        return true;
     }
 
     public void DrainAndStop()

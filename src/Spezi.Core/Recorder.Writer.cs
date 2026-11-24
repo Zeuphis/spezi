@@ -55,6 +55,29 @@ public sealed partial class Recorder
         }
     }
 
+    // One log line per saved clip. "dropped" counts missing frame slots between
+    // timestamps (late capture or a full encoder queue); "dup" counts frames that
+    // repeated the previous image because Windows delivered no new one in time.
+    static string DescribeClip(EncodedPacket[] video, FrameStats? stats)
+    {
+        var frameDuration = video.Length > 0 && video[0].Duration > 0 ? video[0].Duration : TimeSpan.TicksPerSecond / 60;
+        long maxGap = 0;
+        long dropped = 0;
+        for (var i = 1; i < video.Length; i++)
+        {
+            var gap = video[i].Timestamp - video[i - 1].Timestamp;
+            if (gap <= 0)
+                continue;
+            maxGap = Math.Max(maxGap, gap);
+            if (gap > frameDuration * 3 / 2)
+                dropped += (gap + frameDuration / 2) / frameDuration - 1;
+        }
+        var (duplicated, late, encoderDropped) = video.Length > 0 && stats != null
+            ? stats.Sum(video[0].Timestamp, video[^1].Timestamp)
+            : (0, 0, 0);
+        return $"Clip stats: {video.Length} frames, {duplicated} dup, {dropped} dropped ({late} late, {encoderDropped} encoder), max gap {maxGap / (double)TimeSpan.TicksPerMillisecond:0} ms";
+    }
+
     static IMFMediaType? CloneType(IMFMediaType? source)
     {
         if (source == null)
